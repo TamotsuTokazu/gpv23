@@ -1,0 +1,93 @@
+# ============================
+# C++ / CMake build artifacts
+# ============================
+
+# CMake
+/CMakeFiles/
+/CMakeCache.txt
+/*.cmake
+/CTestTestfile.cmake
+/cmake_install.cmake
+/Makefile
+
+# Build directories
+/build/
+/bin/
+/lib/
+/out/
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Qt Creator
+*.pro.user
+*.qmake.stash
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserdata/
+*.moved-aside
+DerivedData/
+*.hmap
+
+# CLion
+.idea/
+*.iml
+
+# Other IDEs and editors
+*.swp
+*.swo
+*~
+/.vscode/
+
+# Executables
+*.exe
+*.out
+*.app
+*.dmg
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.dSYM/
+*.pdb
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# C++ specific
+*.obj
+*.o
+*.lo
+*.la
+*.al
+*.libs
+
+# Coverage files
+*.gcda
+*.gcno
+*.gcov
+
+# Others
+.DS_Store
+Thumbs.db
