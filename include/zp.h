@@ -1,8 +1,14 @@
+#ifndef ZP_H
+#define ZP_H
+
 #include <cstdint>
 
-template <uint64_t p>
+template <uint64_t p_>
 class Zp {
 public:
+
+    constexpr static uint64_t p = p_;
+
     constexpr static uint64_t Add(uint64_t a, uint64_t b) {
         uint64_t sum = a + b;
         return sum >= p ? sum - p : sum;
@@ -40,3 +46,5 @@ public:
         return res;
     }
 };
+
+#endif // ZP_H
