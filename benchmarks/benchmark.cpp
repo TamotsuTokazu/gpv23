@@ -9,7 +9,7 @@ static void BM_ForwardCT23NTT(benchmark::State& state) {
     uint64_t a[12288] = {0, 1};
     uint64_t b[12288];
     for (auto _ : state) {
-        NTT::ForwardCT23NTT(a, b);
+        NTT::GetInstance().ForwardCT23NTT(a, b);
     }
 }
 
@@ -19,7 +19,7 @@ static void BM_ForwardRaderNTT769(benchmark::State& state) {
     using NTT = NTT<1152921504602791681LL, 11, 769, 11>;
     uint64_t a[768] = {0, 1};
     for (auto _ : state) {
-        NTT::ForwardRaderNTT(a);
+        NTT::GetInstance().ForwardNTT(a);
     }
 }
 
@@ -29,7 +29,7 @@ static void BM_ForwardRaderNTT12289(benchmark::State& state) {
     using NTT = NTT<1152921504107839489LL, 19, 12289, 11>;
     uint64_t a[12288] = {0, 1};
     for (auto _ : state) {
-        NTT::ForwardRaderNTT(a);
+        NTT::GetInstance().ForwardNTT(a);
     }
 }
 

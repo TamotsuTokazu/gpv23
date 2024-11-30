@@ -1,23 +1,25 @@
 #include <iostream>
 
-#include "ntt.h"
+#include "dcrtpoly.h"
+
+using NTT1 = NTT<4294960321LL, 13LL, 7, 3>;
+using NTT2 = NTT<4294953601LL, 37LL, 7, 3>;
 
 int main() {
-    using NTT = NTT<1152921504606846577LL, 15, 7, 3>;
-    NTT();
-    uint64_t a[NTT::N] = {1, 2, 3, 0, 0, 0};
-    uint64_t b[NTT::N] = {1, 0, 0, 1, 0, 0};
-    NTT::ForwardRaderNTT(a);
-    NTT::ForwardRaderNTT(b);
-    for (size_t i = 0; i < NTT::N; i++) {
-        std::cout << a[i] << " ";
-        a[i] = NTT::ZZ::Mul(a[i], b[i]);
+    Poly<6> a{1, 2, 3, 4, 5, 6};
+    DCRTPoly<NTT1, NTT2> aa{a};
+    for (size_t i = 0; i < 2; i++) {
+        for (size_t j = 0; j < 6; j++) {
+            std::cout << aa.a[i][j] << " ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
-    NTT::InverseRaderNTT(a);
-    for (size_t i = 0; i < NTT::N; i++) {
-        std::cout << a[i] << " ";
+    auto b = aa + aa;
+    for (size_t i = 0; i < 2; i++) {
+        for (size_t j = 0; j < 6; j++) {
+            std::cout << b.a[i][j] << " ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
     return 0;
 }

@@ -91,3 +91,4 @@ DerivedData/
 # Others
 .DS_Store
 Thumbs.db
+*.sage.py
