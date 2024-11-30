@@ -23,6 +23,13 @@ public:
             }
         }
     }
+
+    void print() const {
+        for (size_t i = 0; i < N; i++) {
+            std::cout << a[i] << " ";
+        }
+        std::cout << std::endl;
+    }
 };
 
 template <typename ...NTTs>
@@ -53,67 +60,28 @@ public:
 template <typename ...NTTs>
 class DCRTPoly {
 public:
+    using NTTTypes = std::tuple<NTTs...>;
+
+    template <size_t i>
+    using NTTi = std::tuple_element_t<i, NTTTypes>;
+
     constexpr static size_t ell = sizeof...(NTTs);
     constexpr static std::array<size_t, ell> p{NTTs::p...};
 
-    static constexpr size_t N = std::tuple_element<0, std::tuple<NTTs...>>::type::N;
+    static constexpr size_t N = NTTi<0>::N;
 
     static_assert((... && (NTTs::N == N)), "All NTTs must have the same N");
 
     uint64_t a[ell][N];
 
-    template <typename NTT, size_t i>
-    struct ToEval {
-        void operator()(DCRTPoly *t) {
-            NTT::GetInstance().ForwardNTT(t->a[i]);
-        }
-    };
-
-    template <typename NTT, size_t i>
-    struct Plus {
-        void operator()(const DCRTPoly *t, const DCRTPoly& x, DCRTPoly &ret) {
-            for (size_t j = 0; j < N; j++) {
-                ret.a[i][j] = Zp<p[i]>::Add(t->a[i][j], x.a[i][j]);
-            }
-        }
-    };
-
-    template <typename NTT, size_t i>
-    struct Minus {
-        void operator()(const DCRTPoly *t, const DCRTPoly& x, DCRTPoly &ret) {
-            for (size_t j = 0; j < N; j++) {
-                ret.a[i][j] = Zp<p[i]>::Sub(t->a[i][j], x.a[i][j]);
-            }
-        }
-    };
-
-    template <typename NTT, size_t i>
-    struct Times {
-        void operator()(const DCRTPoly *t, const DCRTPoly& x, DCRTPoly &ret) {
-            for (size_t j = 0; j < N; j++) {
-                ret.a[i][j] = Zp<p[i]>::Mul(t->a[i][j], x.a[i][j]);
-            }
-        }
-    };
-
-    template <template <typename, size_t> typename F, size_t ...Is>
-    void UnaryExecFImpl(DCRTPoly *t, std::index_sequence<Is...>) {
-        (F<NTTs, Is>()(t), ...);
+    template <typename F, size_t... Is>
+    static void ForEachImpl(F&& f, std::index_sequence<Is...>) {
+        (f.template operator()<Is>(), ...);
     }
 
-    template <template <typename, size_t> typename F>
-    void UnaryExecF() {
-        UnaryExecFImpl<F>(this, std::make_index_sequence<ell>());
-    }
-
-    template <typename T, template <typename, size_t> typename F, size_t ...Is>
-    void TrinaryExecFConstImpl(const DCRTPoly *t, const T &x, T &ret, std::index_sequence<Is...>) const {
-        (F<NTTs, Is>()(t, x, ret), ...);
-    }
-
-    template <typename T, template <typename, size_t> typename F>
-    void TrinaryExecFConst(const T &x, T &ret) const {
-        TrinaryExecFConstImpl<T, F>(this, x, ret, std::make_index_sequence<ell>());
+    template <typename F>
+    static void ForEach(F&& f) {
+        ForEachImpl(f, std::make_index_sequence<ell>());
     }
 
     DCRTPoly() : a{} {}
@@ -125,28 +93,121 @@ public:
                 a[j][i] = x.a[j];
             }
         }
-        UnaryExecF<ToEval>();
+        ForEach([this]<size_t i>() {
+            using NTT = NTTi<i>;
+            NTT::GetInstance().ForwardNTT(a[i]);
+        });
     }
 
-    DCRTPoly operator+(const DCRTPoly& rhs) const {
+    DCRTPoly operator+(const DCRTPoly& rhs) const{
         DCRTPoly res;
-        TrinaryExecFConst<DCRTPoly, Plus>(rhs, res);
+        ForEach([this, &rhs, &res]<size_t i>() {
+            for (size_t j = 0; j < N; j++) {
+                res.a[i][j] = Zp<p[i]>::Add(a[i][j], rhs.a[i][j]);
+            }
+        });
         return res;
     }
 
     DCRTPoly operator-(const DCRTPoly& rhs) const {
         DCRTPoly res;
-        TrinaryExecFConst<DCRTPoly, Minus>(rhs, res);
+        ForEach([this, &rhs, &res]<size_t i>() {
+            for (size_t j = 0; j < N; j++) {
+                res.a[i][j] = Zp<p[i]>::Sub(a[i][j], rhs.a[i][j]);
+            }
+        });
         return res;
     }
 
     DCRTPoly operator*(const DCRTPoly& rhs) const {
         DCRTPoly res;
-        TrinaryExecFConst<DCRTPoly, Times>(rhs, res);
+        ForEach([this, &rhs, &res]<size_t i>() {
+            for (size_t j = 0; j < N; j++) {
+                res.a[i][j] = Zp<p[i]>::Mul(a[i][j], rhs.a[i][j]);
+            }
+        });
         return res;
     }
 
-};
+    DCRTPoly operator*(const DCRTScalar<NTTs...>& rhs) const {
+        DCRTPoly res;
+        ForEach([this, &rhs, &res]<size_t i>() {
+            for (size_t j = 0; j < N; j++) {
+                res.a[i][j] = Zp<p[i]>::Mul(a[i][j], rhs.a[i]);
+            }
+        });
+        return res;
+    }
 
+    template <typename NTT>
+    DCRTPoly Component() const {
+        DCRTPoly res;
+        ForEach([this, &res]<size_t i>() {
+            if constexpr (std::is_same_v<NTT, NTTi<i>>) {
+                std::copy(a[i], a[i] + N, res.a[i]);
+            }
+        });
+        return res;
+    }
+
+    template <typename NTT>
+    Poly<N> Retrieve() const {
+        uint64_t t[N];
+        ForEach([this, &t]<size_t i>() {
+            if constexpr (std::is_same_v<NTT, NTTi<i>>) {
+                std::copy(a[i], a[i] + N, t);
+                NTT::GetInstance().InverseNTT(t);
+            }
+        });
+        Poly<N> res;
+        for (size_t i = 0; i < N; i++) {
+            res.a[i] = t[i];
+        }
+        return res;
+    }
+
+    template <typename NTT>
+    DCRTPoly BaseExpand() const {
+        uint64_t t[N];
+        ForEach([this, &t]<size_t i>() {
+            if constexpr (std::is_same_v<NTT, NTTi<i>>) {
+                std::copy(a[i], a[i] + N, t);
+            }
+        });
+        NTT::GetInstance().InverseNTT(t);
+        DCRTPoly res;
+        ForEach([this, &res, &t]<size_t i>() {
+            using NTTi = NTTi<i>;
+            if constexpr (std::is_same_v<NTT, NTTi>) {
+                std::copy(a[i], a[i] + N, res.a[i]);
+            } else {
+                for (size_t j = 0; j < N; j++) {
+                    res.a[i][j] = t[j] % p[i];
+                }
+                NTTi::GetInstance().ForwardNTT(res.a[i]);
+            }
+        });
+        return res;
+    }
+
+    void print() const {
+        (Retrieve<NTTs>().print(), ...);
+    }
+
+    static DCRTPoly SampleUniform() {
+        DCRTPoly res;
+        ForEach([&res]<size_t i>() {
+            for (size_t j = 0; j < N; j++) {
+                res.a[i][j] = std::rand() % p[i];
+            }
+        });
+        return res;
+    }
+
+    static DCRTPoly SampleE() {
+        return SampleUniform();
+    }
+
+};
 
 #endif // DCRTPOLY_H
