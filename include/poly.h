@@ -86,7 +86,7 @@ public:
         return ret;
     }
 
-    void print() const {
+    void Print() const {
         if (is_coeff) {
             std::cout << "Coeff: ";
         } else {

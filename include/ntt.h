@@ -479,7 +479,6 @@ public:
 
 private:
     TensorNTTImpl() {}
-
 };
 
 #endif // NTT_H

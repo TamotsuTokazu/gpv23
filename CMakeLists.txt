@@ -33,7 +33,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include
 
 # Add compiler definitions or options if needed
 # target_compile_definitions(${PROJECT_NAME} PRIVATE SOME_DEFINITION)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror -Ofast -march=native -mavx2 -funroll-loops -ftree-vectorize -fopt-info-vec=vectorization_report.txt -Wno-unused-parameter)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror -Ofast -march=native -mavx2 -funroll-loops -ftree-vectorize -Wno-unused-parameter)
 
 # Enable testing
 enable_testing()

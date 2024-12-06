@@ -45,6 +45,10 @@ public:
         }
         return res;
     }
+
+    constexpr static uint64_t Inv(uint64_t x) {
+        return Pow(x, p - 2);
+    }
 };
 
 #endif // ZP_H
