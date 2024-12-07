@@ -48,13 +48,13 @@ public:
         return res;
     }
 
-    constexpr static uint64_t Inv(uint64_t x) {
+    constexpr static inline uint64_t Inv(uint64_t x) {
         return Pow(x, p - 2);
     }
 
     constexpr static double u = (1.0 + std::numeric_limits<double>::epsilon()) / (double)p;
 
-    static __m512i MulVec(__m512i x, __m512i y) requires (p < (1ULL << 50)) {
+    static inline __m512i Mul512(__m512i x, __m512i y) requires (p < (1ULL << 50)) {
         static __m512d v_u = _mm512_set1_pd(u);
         static __m512d q = _mm512_set1_pd(p);
         const auto rounding = _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC;
@@ -71,6 +71,7 @@ public:
         __m512i z = _mm512_cvt_roundpd_epi64(g, rounding);
         return z;
     }
+
 };
 
 #endif // ZP_H

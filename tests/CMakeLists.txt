@@ -3,14 +3,14 @@
 # Download and include GoogleTest using FetchContent
 include(FetchContent)
 
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.15.2 # Specify the desired version
-)
+# FetchContent_Declare(
+#     googletest
+#     GIT_REPOSITORY https://github.com/google/googletest.git
+#     GIT_TAG        v1.15.2 # Specify the desired version
+# )
 
-# Fetch the content
-FetchContent_MakeAvailable(googletest)
+# # Fetch the content
+# FetchContent_MakeAvailable(googletest)
 
 # Now, we can use the gtest and gtest_main targets
 
@@ -25,6 +25,7 @@ target_link_libraries(gpv23_tests
     gtest_main
     # If your project executable is needed for testing, link it here
     ${PROJECT_NAME}
+    hexl
 )
 
 # Include directories if needed

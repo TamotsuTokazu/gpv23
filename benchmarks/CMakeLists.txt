@@ -15,7 +15,7 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 # Fetch and make available Google Benchmark
-FetchContent_MakeAvailable(googlebenchmark)
+# FetchContent_MakeAvailable(googlebenchmark)
 
 # Collect all benchmark source files
 file(GLOB BENCHMARK_SOURCES "*.cpp")
@@ -27,6 +27,7 @@ add_executable(gpv23_benchmarks ${BENCHMARK_SOURCES})
 target_link_libraries(gpv23_benchmarks
     benchmark::benchmark_main
     ${PROJECT_NAME} # Link against your main project executable or its libraries
+    hexl
 )
 
 # Include directories if needed

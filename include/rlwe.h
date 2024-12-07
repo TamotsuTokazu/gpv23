@@ -56,7 +56,7 @@ RLWEGadgetCiphertext<DCRT> GadgetMult(const DCRT &a, const RLWEGadgetCiphertext<
 }
 
 template <typename DCRT>
-RLWECiphertext<DCRT> ExtMult(const RLWECiphertext<DCRT> &c, const RGSWCiphertext<DCRT> &C) {
+inline RLWECiphertext<DCRT> ExtMult(const RLWECiphertext<DCRT> &c, const RGSWCiphertext<DCRT> &C) {
     RLWECiphertext<DCRT> res;
     DCRT::U::ForEach([&res, &c, &C]<size_t i> {
         auto ai = c[0].template BaseExtend<typename DCRT::NTTi<i>>();

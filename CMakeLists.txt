@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(gpv23 VERSION 1.0.0 LANGUAGES CXX)
 
+include(FetchContent)
+
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_QUIRED True)
@@ -12,6 +14,14 @@ endif()
 
 # Optionally enable benchmarks
 option(ENABLE_BENCHMARKS "Enable benchmarking with Google Benchmark" ON)
+
+FetchContent_Declare(
+    intel-hexl
+    GIT_REPOSITORY https://github.com/intel/hexl.git
+    GIT_TAG        v1.2.5 # Specify the desired version
+)
+
+FetchContent_MakeAvailable(intel-hexl)
 
 # Add source files
 # Assuming your source files are in the 'src' directory
@@ -25,11 +35,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 # Find and link libraries (example using Boost)
-# find_package(Boost 1.71 REQUIRED COMPONENTS filesystem system)
-# if(Boost_FOUND)
-#     target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
-#     target_link_libraries(${PROJECT_NAME} PRIVATE ${Boost_LIBRARIES})
-# endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE hexl)
 
 # Add compiler definitions or options if needed
 # target_compile_definitions(${PROJECT_NAME} PRIVATE SOME_DEFINITION)

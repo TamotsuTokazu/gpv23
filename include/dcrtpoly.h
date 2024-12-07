@@ -3,6 +3,9 @@
 
 #include <cstdint>
 #include <concepts>
+#include <immintrin.h>
+
+#include <hexl/hexl.hpp>
 
 #include "ntt.h"
 
@@ -194,9 +197,10 @@ public:
     DCRTPoly operator+(const DCRTPoly& rhs) const{
         DCRTPoly res;
         U::ForEach([this, &rhs, &res]<size_t i> {
-            for (size_t j = 0; j < N; j++) {
-                res.a[i][j] = Zp<p[i]>::Add(a[i][j], rhs.a[i][j]);
-            }
+            // for (size_t j = 0; j < N; j++) {
+            //     res.a[i][j] = Zp<p[i]>::Add(a[i][j], rhs.a[i][j]);
+            // } 
+            intel::hexl::EltwiseAddMod(res.a[i], a[i], rhs.a[i], N, p[i]);
         });
         return res;
     }
@@ -204,9 +208,10 @@ public:
     DCRTPoly operator-(const DCRTPoly& rhs) const {
         DCRTPoly res;
         U::ForEach([this, &rhs, &res]<size_t i> {
-            for (size_t j = 0; j < N; j++) {
-                res.a[i][j] = Zp<p[i]>::Sub(a[i][j], rhs.a[i][j]);
-            }
+            // for (size_t j = 0; j < N; j++) {
+            //     res.a[i][j] = Zp<p[i]>::Sub(a[i][j], rhs.a[i][j]);
+            // }
+            intel::hexl::EltwiseSubMod(res.a[i], a[i], rhs.a[i], N, p[i]);
         });
         return res;
     }
@@ -214,9 +219,16 @@ public:
     DCRTPoly operator*(const DCRTPoly& rhs) const {
         DCRTPoly res;
         U::ForEach([this, &rhs, &res]<size_t i> {
-            for (size_t j = 0; j < N; j++) {
-                res.a[i][j] = Zp<p[i]>::Mul(a[i][j], rhs.a[i][j]);
-            }
+            // for (size_t j = 0; j + 7 < N; j += 8) {
+            //     __m512i aV = _mm512_loadu_si512((__m512i*)&a[i][j]);
+            //     __m512i raV = _mm512_loadu_si512((__m512i*)&rhs.a[i][j]);
+            //     __m512i retV = Zp<p[i]>::Mul512(aV, raV);
+            //     _mm512_storeu_si512((__m512i*)&res.a[i][j], retV);
+            // }
+            // for (size_t j = N - N % 8; j < N; j++) {
+            //     res.a[i][j] = Zp<p[i]>::Mul(a[i][j], rhs.a[i][j]);
+            // }
+            intel::hexl::EltwiseMultMod(res.a[i], a[i], rhs.a[i], N, p[i], 1);
         });
         return res;
     }
