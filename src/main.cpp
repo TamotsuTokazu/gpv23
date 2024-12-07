@@ -14,21 +14,22 @@ std::chrono::time_point<std::chrono::system_clock> start;
 constexpr size_t p = 12289;
 constexpr size_t gp = 11;
 
-constexpr size_t N = 1024;
+constexpr size_t N = 256;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
 using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
 using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
+using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
 
-using DCRT = DCRTPoly<NTT1, NTT2, NTT3>;
+using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
 
 using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
 constexpr size_t rN = Z::Pow(NTT1::g, (p - 1) / Ncyc);
-constexpr size_t rho = 32;
-constexpr size_t Rx = 32;
+constexpr size_t rho = 16;
+constexpr size_t Rx = 16;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
 VecN PartialFourierTransform(VecN a, size_t rho) {
