@@ -165,7 +165,39 @@ public:
             l1 = 1 << (i + 1);
             d = N >> (i + 1);
             for (size_t j = 0; j < N; j += l1) {
+
                 size_t k = 0;
+
+                {
+                    __m512i pV   = _mm512_set1_epi64(p);
+                    __m512i p_1V = _mm512_set1_epi64(p - 1);
+
+                    // Process 8 elements at a time using AVX-512
+                    for (; k + 7 < l0; k += 8) {
+
+                        __m512i bl0V = _mm512_loadu_si512((__m512i*)&b[j + k + l0]);
+                        __m512i omegaV = _mm512_set_epi64(omega[(k + 7) * d], omega[(k + 6) * d], omega[(k + 5) * d], omega[(k + 4) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
+
+                        __m512i tV = Z::MulVec(bl0V, omegaV);
+
+                        __m512i bV = _mm512_loadu_si512((__m512i*)&b[j + k]);
+
+                        // add path
+                        __m512i addV = _mm512_add_epi64(bV, tV);
+                        __mmask8 add_mask = _mm512_cmpgt_epi64_mask(addV, p_1V);
+                        // If add_mask is set for an element, subtract p from that element
+                        addV = _mm512_mask_sub_epi64(addV, add_mask, addV, pV);
+                        _mm512_storeu_si512((__m512i*)&b[j + k], addV);
+
+                        // subtract path
+                        __m512i subV = _mm512_sub_epi64(bV, tV);
+                        __mmask8 sub_mask = _mm512_cmpgt_epi64_mask(tV, bV);
+                        // If sub_mask is set, add p to that element
+                        subV = _mm512_mask_add_epi64(subV, sub_mask, subV, pV);
+                        _mm512_storeu_si512((__m512i*)&b[j + l0 + k], subV);
+                    }
+                }
+
                 for (; k + 3 < l0; k += 4) {
                     uint64_t t0 = Z::MulFastConst(b[j + l0 + k], omega[k * d], omega_barrett[k * d]);
                     uint64_t t1 = Z::MulFastConst(b[j + l0 + k + 1], omega[(k + 1) * d], omega_barrett[(k + 1) * d]);
@@ -186,10 +218,13 @@ public:
                     __m256i sub_adjustV = _mm256_add_epi64(subV, _mm256_and_si256(sub_maskV, pV));
                     _mm256_storeu_si256((__m256i*)&b[j + l0 + k], sub_adjustV);
                 }
+
                 for (; k < l0; k++) {
                     uint64_t t = Z::MulFastConst(b[j + l0 + k], omega[k * d], omega_barrett[k * d]);
-                    b[j + l0 + k] = Z::Sub(b[j + k], t);
-                    b[j + k] = Z::Add(b[j + k], t);
+                    uint64_t tmpAdd = Z::Add(b[j + k], t);
+                    uint64_t tmpSub = Z::Sub(b[j + k], t);
+                    b[j + k] = tmpAdd;
+                    b[j + l0 + k] = tmpSub;
                 }
             }
         }
@@ -312,7 +347,16 @@ public:
 
         ForwardCT23NTT(reg, a);
 
-        for (size_t i = 0; i < N; i++) {
+        // for (size_t i = 0; i < N; i++) {
+        //     a[i] = Z::MulFastConst(a[i], omega_O_table[i], omega_O_barrett_table[i]);
+        // }
+        for (size_t i = 0; i + 7 < N; i += 8) {
+            __m512i aV = _mm512_loadu_si512((__m512i*)&a[i]);
+            __m512i omega_O_tableV = _mm512_loadu_si512((__m512i*)&omega_O_table[i]);
+            __m512i retV = Z::MulVec(aV, omega_O_tableV);
+            _mm512_storeu_si512((__m512i*)&a[i], retV);
+        }
+        for (size_t i = (N - N % 8); i < N; i++) {
             a[i] = Z::MulFastConst(a[i], omega_O_table[i], omega_O_barrett_table[i]);
         }
 

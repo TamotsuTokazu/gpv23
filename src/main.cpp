@@ -13,21 +13,24 @@ std::chrono::time_point<std::chrono::system_clock> start;
 
 constexpr size_t p = 12289;
 constexpr size_t gp = 11;
+// constexpr size_t p = 17;
+// constexpr size_t gp = 3;
 
-constexpr size_t N = 1024;
+constexpr size_t N = 512;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
 using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
 using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
+using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
 
-using DCRT = DCRTPoly<NTT1, NTT2, NTT3>;
+using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
 
 using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
-constexpr size_t rN = Z::Pow(NTT1::g, (p - 1) / Ncyc);
-constexpr size_t rho = 32;
+constexpr size_t rN = Z::Pow(gp, (p - 1) / Ncyc);
+constexpr size_t rho = 16;
 constexpr size_t Rx = 32;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
@@ -117,9 +120,6 @@ GaloisKey GaloisKeyGen(const DCRT &s) {
     GaloisKey Kg;
     for (size_t i = 2; i < p; i++) {
         Kg[i] = KeySwitchGen(s.Galois(i), s);
-        if (i % 1000 == 0) {
-            std::cout << i << std::endl;
-        }
     }
     return Kg;
 }
@@ -202,8 +202,8 @@ std::vector<RLWEGadgetCiphertext<DCRT>> HomomorphicPFT(const GaloisKey &Kg, cons
 int main() {
     VecN a, b0, z;
     for (size_t i = 0; i < N; i++) {
-        a[i] = rand() % p;
         z[i] = rand() % p;
+        a[i] = rand() % p;
         b0[i] = 0;
     }
     for (size_t i = 0; i < N; i++) {
@@ -282,8 +282,9 @@ int main() {
     END_TIMER;
 
     for (size_t i = 0; i < N; i++) {
-        DecryptAndPrintE(zPFT[i], s);
+        std::cout << DecryptAndPrintE(zPFT[i], s) << " ";
     }
+    std::cout << std::endl;
 
     return 0;
 }

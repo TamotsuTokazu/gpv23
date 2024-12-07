@@ -7,9 +7,9 @@
 #define REPETITIONS 3
 
 static void BM_ForwardCT23NTT(benchmark::State& state) {
-    using NTT = NTT<1152921504107839489LL, 19, 12289, 11>;
-    uint64_t a[12288] = {0, 1};
-    uint64_t b[12288];
+    using NTT = NTT<562936689020929LL, 7LL, 12289, 11>;
+    uint64_t a[NTT::N] = {0, 1};
+    uint64_t b[NTT::N];
     for (auto _ : state) {
         NTT::GetInstance().ForwardCT23NTT(a, b);
     }
@@ -17,19 +17,9 @@ static void BM_ForwardCT23NTT(benchmark::State& state) {
 
 BENCHMARK(BM_ForwardCT23NTT)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
-static void BM_ForwardRaderNTT769(benchmark::State& state) {
-    using NTT = NTT<1152921504602791681LL, 11, 769, 11>;
-    uint64_t a[768] = {0, 1};
-    for (auto _ : state) {
-        NTT::GetInstance().ForwardNTT(a);
-    }
-}
-
-BENCHMARK(BM_ForwardRaderNTT769)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
-
 static void BM_ForwardRaderNTT12289(benchmark::State& state) {
-    using NTT = NTT<1152921504107839489LL, 19, 12289, 11>;
-    uint64_t a[12288] = {0, 1};
+    using NTT = NTT<562936689020929LL, 19, 12289, 11>;
+    uint64_t a[NTT::N] = {0, 1};
     for (auto _ : state) {
         NTT::GetInstance().ForwardNTT(a);
     }
@@ -38,12 +28,15 @@ static void BM_ForwardRaderNTT12289(benchmark::State& state) {
 BENCHMARK(BM_ForwardRaderNTT12289)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 static void BM_BaseExtend(benchmark::State& state) {
-    using NTT1 = NTT<1125898445242369LL, 13LL, 12289, 11>;
-    using NTT2 = NTT<1125893310996481LL, 7LL, 12289, 11>;
-    using NTT3 = NTT<1125893159989249LL, 13LL, 12289, 11>;
+    constexpr size_t p = 12289;
+    constexpr size_t gp = 11;
+    using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
+    using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
+    using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
+    using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
 
-    using DCRT = DCRTPoly<NTT1, NTT2, NTT3>;
-    Poly<12288> a0{1, 2, 3, 4, 5, 6};
+    using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
+    Poly<p> a0{1, 2, 3, 4, 5, 6};
     DCRT a{a0};
     for (auto _ : state) {
         DCRT a1 = a.BaseExtend<NTT1>();
@@ -55,12 +48,15 @@ static void BM_BaseExtend(benchmark::State& state) {
 BENCHMARK(BM_BaseExtend)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 static void BM_ExtMult(benchmark::State& state) {
-    using NTT1 = NTT<1125898445242369LL, 13LL, 12289, 11>;
-    using NTT2 = NTT<1125893310996481LL, 7LL, 12289, 11>;
-    using NTT3 = NTT<1125893159989249LL, 13LL, 12289, 11>;
+    constexpr size_t p = 12289;
+    constexpr size_t gp = 11;
+    using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
+    using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
+    using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
+    using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
 
-    using DCRT = DCRTPoly<NTT1, NTT2, NTT3>;
-    Poly<12288> a0{1, 2, 3, 4, 5, 6};
+    using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
+    Poly<p> a0{1, 2, 3, 4, 5, 6};
     DCRT a{a0};
     RLWECiphertext<DCRT> c = RLWEEncrypt(a, a);
     RGSWCiphertext<DCRT> C = RGSWEncrypt(a, a);

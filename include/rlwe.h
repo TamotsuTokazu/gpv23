@@ -2,6 +2,7 @@
 #define RLWE_H
 
 #include "dcrtpoly.h"
+#include <concepts>
 
 template <typename DCRT>
 using RLWECiphertext = std::array<DCRT, 2>;
@@ -113,8 +114,14 @@ RGSWCiphertext<DCRT> SchemeSwitch(const RLWEGadgetCiphertext<DCRT> &c, const RLW
     return {res, c};
 }
 
+template <typename T, template <typename...> typename U>
+struct is_instantiation_of : std::false_type {};
+
+template <template <typename...> typename U, typename... T>
+struct is_instantiation_of<U<T...>, U> : std::true_type {};
+
 template <typename DCRT>
-RLWECiphertext<DCRT> Galois(const RLWECiphertext<DCRT> &c, size_t alpha) {
+RLWECiphertext<DCRT> Galois(const RLWECiphertext<DCRT> &c, size_t alpha) requires is_instantiation_of<DCRT, DCRTPoly>::value {
     RLWECiphertext<DCRT> res;
     res[0] = c[0].Galois(alpha);
     res[1] = c[1].Galois(alpha);
@@ -157,13 +164,11 @@ size_t DecryptAndPrintE(const RLWEGadgetCiphertext<DCRT> &c, const DCRT &s) {
     for (size_t i = 0; i < DCRT::N; i++) {
         if (m.a[i] != 0) {
             if (j != DCRT::N) {
-                std::cout << " + ";
+                throw std::runtime_error("Invalid RLWE ciphertext");
             }
             j = i;
-            std::cout << m.a[i] << "x^" << j;
         }
     }
-    std::cout << std::endl;
     return j;
 }
 

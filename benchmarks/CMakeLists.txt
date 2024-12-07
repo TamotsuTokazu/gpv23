@@ -33,7 +33,7 @@ target_link_libraries(gpv23_benchmarks
 target_include_directories(gpv23_benchmarks PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 # Optionally, set compile options for benchmarks
-target_compile_options(gpv23_benchmarks PRIVATE -Ofast -march=native -mavx2 -funroll-loops -ftree-vectorize -Wno-unused-parameter)
+target_compile_options(gpv23_benchmarks PRIVATE -Ofast -march=native -mavx2 -mavx512f -mavx512dq -funroll-loops -ftree-vectorize -Wno-unused-parameter)
 
 # Installation rules for benchmarks (optional)
 # install(TARGETS gpv23_benchmarks DESTINATION bin)
