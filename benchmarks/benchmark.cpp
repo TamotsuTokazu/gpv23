@@ -10,24 +10,25 @@ static void BM_ForwardCT23NTT(benchmark::State& state) {
     using NTT = NTT<562936689020929LL, 7LL, 12289, 11>;
     uint64_t a[NTT::N] = {0, 1};
     uint64_t b[NTT::N];
+    NTT::GetInstance().ForwardCT23NTT(a, b);
     for (auto _ : state) {
-        a[0] = rand();
+        a[rand() % NTT::N] = rand();
         NTT::GetInstance().ForwardCT23NTT(a, b);
     }
 }
 
-BENCHMARK(BM_ForwardCT23NTT)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+BENCHMARK(BM_ForwardCT23NTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 static void BM_ForwardRaderNTT12289(benchmark::State& state) {
     using NTT = NTT<562936689020929LL, 19, 12289, 11>;
     uint64_t a[NTT::N] = {0, 1};
     for (auto _ : state) {
-        a[0] = rand();
+        a[rand() % NTT::N] = rand();
         NTT::GetInstance().ForwardNTT(a);
     }
 }
 
-BENCHMARK(BM_ForwardRaderNTT12289)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+BENCHMARK(BM_ForwardRaderNTT12289)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 static void BM_BaseExtend(benchmark::State& state) {
     constexpr size_t p = 12289;
@@ -44,7 +45,7 @@ static void BM_BaseExtend(benchmark::State& state) {
     }
 }
 
-BENCHMARK(BM_BaseExtend)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+BENCHMARK(BM_BaseExtend)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 static void BM_ExtMult(benchmark::State& state) {
     constexpr size_t p = 12289;
@@ -64,7 +65,7 @@ static void BM_ExtMult(benchmark::State& state) {
     }
 }
 
-BENCHMARK(BM_ExtMult)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+BENCHMARK(BM_ExtMult)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
 // Register the benchmark main function if not already provided
 // This is typically handled by Google Benchmark's CMake integration

@@ -166,6 +166,7 @@ public:
             l0 = 1 << i;
             l1 = 1 << (i + 1);
             d = N >> (i + 1);
+
             for (size_t j = 0; j < N; j += l1) {
 
                 size_t k = 0;
@@ -174,22 +175,26 @@ public:
                 for (; k + 7 < l0; k += 8) {
 
                     __m512i bl0V = _mm512_loadu_si512((__m512i*)&b[j + k + l0]);
+                    // __m512i indicesV = _mm512_add_epi64(dV, _mm512_set1_epi64(k * d));
+                    // __m512i omegaV = _mm512_i64gather_epi64(indicesV, omega, sizeof(omega[0]));
                     __m512i omegaV = _mm512_set_epi64(omega[(k + 7) * d], omega[(k + 6) * d], omega[(k + 5) * d], omega[(k + 4) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
-
                     __m512i tV = Z::Mul512(bl0V, omegaV);
+
+                    // __m512i omega_barrettV = _mm512_set_epi64(omega_barrett[(k + 7) * d], omega_barrett[(k + 6) * d], omega_barrett[(k + 5) * d], omega_barrett[(k + 4) * d], omega_barrett[(k + 3) * d], omega_barrett[(k + 2) * d], omega_barrett[(k + 1) * d], omega_barrett[(k + 0) * d]);
+                    // __m512i tV = Z::MulConst512(bl0V, omegaV, omega_barrettV);
 
                     __m512i bV = _mm512_loadu_si512((__m512i*)&b[j + k]);
 
                     // add path
                     __m512i addV = _mm512_add_epi64(bV, tV);
-                    __m512i add_reducedV = _mm512_min_epu64(addV, _mm512_sub_epi64(addV, pV512));
-                    _mm512_storeu_si512((__m512i*)&b[j + k], add_reducedV);
+                    addV = _mm512_min_epu64(addV, _mm512_sub_epi64(addV, pV512));
+                    _mm512_storeu_si512((__m512i*)&b[j + k], addV);
 
                     // subtract path
                     __m512i subV = _mm512_sub_epi64(bV, tV);
                     // If sub_mask is set, add p to that element
-                    __m512i sub_reducedV = _mm512_min_epu64(subV, _mm512_add_epi64(subV, pV512));
-                    _mm512_storeu_si512((__m512i*)&b[j + l0 + k], sub_reducedV);
+                    subV = _mm512_min_epu64(subV, _mm512_add_epi64(subV, pV512));
+                    _mm512_storeu_si512((__m512i*)&b[j + l0 + k], subV);
                 } // end of AVX-512 block
 
                 for (; k + 3 < l0; k += 4) {
@@ -203,14 +208,12 @@ public:
                     __m256i bV = _mm256_loadu_si256((__m256i*)&b[j + k]);
 
                     __m256i addV = _mm256_add_epi64(bV, tV);
-                    __m256i add_maskV = _mm256_cmpgt_epi64(addV, p_1V);
-                    __m256i add_adjustV = _mm256_sub_epi64(addV, _mm256_and_si256(add_maskV, pV));
-                    _mm256_storeu_si256((__m256i*)&b[j + k], add_adjustV);
+                    addV = _mm256_min_epu64(addV, _mm256_sub_epi64(addV, pV));
+                    _mm256_storeu_si256((__m256i*)&b[j + k], addV);
 
                     __m256i subV = _mm256_sub_epi64(bV, tV);
-                    __m256i sub_maskV = _mm256_cmpgt_epi64(tV, bV);
-                    __m256i sub_adjustV = _mm256_add_epi64(subV, _mm256_and_si256(sub_maskV, pV));
-                    _mm256_storeu_si256((__m256i*)&b[j + l0 + k], sub_adjustV);
+                    subV = _mm256_min_epu64(subV, _mm256_add_epi64(subV, pV));
+                    _mm256_storeu_si256((__m256i*)&b[j + l0 + k], subV);
                 }
 
                 for (; k < l0; k++) {
@@ -227,6 +230,8 @@ public:
         uint64_t z3_barrett = omega_barrett[N / 3];
         uint64_t zz3 = omega[2 * N / 3];
         uint64_t zz3_barrett = omega_barrett[2 * N / 3];
+        __m512i z3V =  _mm512_set1_epi64(z3);
+        __m512i zz3V = _mm512_set1_epi64(zz3);
 
         for (size_t i = 0; i < v; i++) {
             l0 = U;
@@ -252,8 +257,8 @@ public:
                     // uint64_t t1 = Z::MulFastConst(y11, z3, z3_barrett) + Z::MulFastConst(y12, zz3, zz3_barrett);
                     // uint64_t t2 = Z::MulFastConst(y21, z3, z3_barrett) + Z::MulFastConst(y22, zz3, zz3_barrett);
                     // uint64_t t3 = Z::MulFastConst(y31, z3, z3_barrett) + Z::MulFastConst(y32, zz3, zz3_barrett);
-                    __m512i yz1V = Z::Mul512(y1V, _mm512_set1_epi64(z3));
-                    __m512i yz2V = Z::Mul512(y2V, _mm512_set1_epi64(zz3));
+                    __m512i yz1V = Z::Mul512(y1V, z3V);
+                    __m512i yz2V = Z::Mul512(y2V, zz3V);
                     __m512i tV = _mm512_add_epi64(yz1V, yz2V);
                     
                     tV = _mm512_min_epu64(tV, _mm512_sub_epi64(tV, pV512));

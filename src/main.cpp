@@ -11,12 +11,12 @@
 
 std::chrono::time_point<std::chrono::system_clock> start;
 
-constexpr size_t p = 12289;
-constexpr size_t gp = 11;
-// constexpr size_t p = 17;
-// constexpr size_t gp = 3;
+// constexpr size_t p = 12289;
+// constexpr size_t gp = 11;
+constexpr size_t p = 17;
+constexpr size_t gp = 3;
 
-constexpr size_t N = 512;
+constexpr size_t N = 8;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
@@ -30,8 +30,8 @@ using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
 constexpr size_t rN = Z::Pow(gp, (p - 1) / Ncyc);
-constexpr size_t rho = 16;
-constexpr size_t Rx = 32;
+constexpr size_t rho = 8;
+constexpr size_t Rx = 8;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
 VecN PartialFourierTransform(VecN a, size_t rho) {
@@ -236,6 +236,8 @@ int main() {
     }
     DCRT s(s_poly);
 
+    START_TIMER;
+
     GaloisKey Kg = GaloisKeyGen(s);
     RLWEGadgetCiphertext<DCRT> Kss = RLWEGadgetEncrypt(s * s, s);
 
@@ -250,6 +252,8 @@ int main() {
     for (size_t i = 0; i < N; i++) {
         zz[i] = RGSWEncrypt(DCRT::Monomial(zP[i], 1), s);
     }
+
+    END_TIMER;
 
     START_TIMER;
 

@@ -277,7 +277,17 @@ public:
                 std::copy(a[i], a[i] + N, res.a[i]);
             } else {
                 for (size_t j = 0; j < N; j++) {
-                    res.a[i][j] = t[j] % p[i];
+                    // res.a[i][j] = t[j] % p[i];
+                    res.a[i][j] = t[j];
+                    if constexpr (p[i] < p[id]) {
+                        if constexpr (p[i] > p[id] / 2) {
+                            if (res.a[i][j] > p[i]) {
+                                res.a[i][j] -= p[i];
+                            }
+                        } else {
+                            res.a[i][j] %= p[i];
+                        }
+                    }
                 }
                 NTTi::GetInstance().ForwardNTT(res.a[i]);
             }
