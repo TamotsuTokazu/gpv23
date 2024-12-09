@@ -10,7 +10,7 @@ class Zp {
 public:
 
     constexpr static uint64_t p = p_;
-    constexpr static size_t bitshift = 64;
+    constexpr static size_t bitshift = 52;
 
     constexpr static uint64_t Add(uint64_t a, uint64_t b) {
         uint64_t sum = a + b;
@@ -122,6 +122,38 @@ public:
         __m512i qV = _mm512_hexl_mulhi_epi(x, y_mu);
         const __m512i pV = _mm512_set1_epi64(p);
         qV = _mm512_mullo_epi64(qV, pV);
+        __m512i subV = _mm512_sub_epi64(xyV, qV);
+        return _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
+    }
+
+    static inline __m512i ClearTopBits64_52(__m512i x) {
+        const __m512i low52b_mask = _mm512_set1_epi64((1ULL << 52) - 1);
+        return _mm512_and_epi64(x, low52b_mask);
+    }
+
+    static inline __m512i _mm512_hexl_mulhi_epi_52(__m512i x, __m512i y) {
+        __m512i zero = _mm512_set1_epi64(0);
+        return _mm512_madd52hi_epu64(zero, x, y);
+    }
+
+    static inline __m512i _mm512_hexl_mullo_epi_52(__m512i x, __m512i y) {
+        __m512i zero = _mm512_set1_epi64(0);
+        return _mm512_madd52lo_epu64(zero, x, y);
+    }
+
+    static inline __m512i _mm512_hexl_mullo_add_lo_epi_52(__m512i x, __m512i y, __m512i z) {
+        __m512i result = _mm512_madd52lo_epu64(x, y, z);
+
+        // Clear high 12 bits from result
+        result = ClearTopBits64_52(result);
+        return result;
+    }
+
+    static inline __m512i MulConst512_52(__m512i x, __m512i y, __m512i y_mu) {
+        __m512i xyV = _mm512_hexl_mullo_epi_52(x, y);
+        __m512i qV = _mm512_hexl_mulhi_epi_52(x, y_mu);
+        const __m512i pV = _mm512_set1_epi64(p);
+        qV = _mm512_hexl_mullo_epi_52(qV, pV);
         __m512i subV = _mm512_sub_epi64(xyV, qV);
         return _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
     }

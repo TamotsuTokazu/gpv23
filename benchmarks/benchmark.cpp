@@ -8,8 +8,8 @@
 
 static void BM_ForwardCT23NTT(benchmark::State& state) {
     using NTT = NTT<562936689020929LL, 7LL, 12289, 11>;
-    uint64_t a[NTT::N] = {0, 1};
-    uint64_t b[NTT::N];
+    alignas(64) uint64_t a[NTT::N] = {0, 1};
+    alignas(64) uint64_t b[NTT::N];
     NTT::GetInstance().ForwardCT23NTT(a, b);
     for (auto _ : state) {
         a[rand() % NTT::N] = rand();

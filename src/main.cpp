@@ -11,18 +11,18 @@
 
 std::chrono::time_point<std::chrono::system_clock> start;
 
-// constexpr size_t p = 12289;
-// constexpr size_t gp = 11;
-constexpr size_t p = 17;
-constexpr size_t gp = 3;
+constexpr size_t p = 12289;
+constexpr size_t gp = 11;
+// constexpr size_t p = 37;
+// constexpr size_t gp = 2;
 
-constexpr size_t N = 8;
+constexpr size_t N = 1024;
 constexpr size_t Ncyc = N * 2;
 
-using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
-using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
-using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
-using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
+using NTT1 = CircNTT<562827812806657LL, 7LL, p, gp>;
+using NTT2 = CircNTT<562710480187393LL, 7LL, p, gp>;
+using NTT3 = CircNTT<562693718384641LL, 11LL, p, gp>;
+using NTT4 = CircNTT<562408767737857LL, 5LL, p, gp>;
 
 using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
 
@@ -30,8 +30,8 @@ using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
 constexpr size_t rN = Z::Pow(gp, (p - 1) / Ncyc);
-constexpr size_t rho = 8;
-constexpr size_t Rx = 8;
+constexpr size_t rho = 32;
+constexpr size_t Rx = 32;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
 VecN PartialFourierTransform(VecN a, size_t rho) {
@@ -45,7 +45,6 @@ VecN PartialFourierTransform(VecN a, size_t rho) {
             for (size_t l = 0; l < j; l++) {
                 uint64_t u = Z::Mul(a[kk * i + l + j], z);
                 a[kk * i + l + j] = Z::Sub(a[kk * i + l], u);
-                // a[kk * i + l].ModAddEq(u, par::p);
                 a[kk * i + l] = Z::Add(a[kk * i + l], u);
             }
             for (size_t l = nn >> 1; l > (kk ^= l); l >>= 1);
@@ -93,24 +92,21 @@ VecN PartialInverseFourierTransform(VecN a, size_t rho, size_t r) {
                         a[k + l + m + f * i] = temp[f];
                     }
                 }
-                // z.ModMulEq(W, par::p);
+
                 z = Z::Mul(z, W);
             }
         }
     }
-    // Integer w = par::rN.ModExp(par::Ncyc - rho, par::p);
-    // Integer z = 1;
+
     uint64_t w = Z::Pow(rN, Ncyc - rho);
     uint64_t z = 1;
     for (size_t i = 0; i < n; i += rho) {
         for (size_t j = 0; j < rho; j++) {
-            // a[i + j].ModMulEq(z, par::p);
             a[i + j] = Z::Mul(a[i + j], z);
         }
-        // z.ModMulEq(w, par::p);
         z = Z::Mul(z, w);
     }
-    // return std::move(a);
+
     return a;
 }
 
