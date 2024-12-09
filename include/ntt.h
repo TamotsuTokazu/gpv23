@@ -161,7 +161,6 @@ public:
 
         size_t l0 = 1, l1 = 2, d = N / 2;
 
-
         if constexpr (N % 4 == 0) {
             uint64_t ii = omega[N / 4];
             uint64_t ii_barrett = Z::ComputeBarrettFactor(ii);
@@ -192,13 +191,12 @@ public:
                 l1 = 1 << (i + 1);
                 d = N >> (i + 1);
 
-                for (size_t j = 0; j < N; j += l1) {
+                for (size_t k = 0; k + 7 < l0; k += 8) {
+                    __m512i omegaV = _mm512_set_epi64(omega[(k + 7) * d], omega[(k + 6) * d], omega[(k + 5) * d], omega[(k + 4) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
 
-                    // Process 8 elements at a time using AVX-512
-                    for (size_t k = 0; k + 7 < l0; k += 8) {
-
+                    for (size_t j = 0; j < N; j += l1) {
+                        // Process 8 elements at a time using AVX-512
                         __m512i bl0V = _mm512_load_si512((__m512i*)&b[j + k + l0]);
-                        __m512i omegaV = _mm512_set_epi64(omega[(k + 7) * d], omega[(k + 6) * d], omega[(k + 5) * d], omega[(k + 4) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
                         __m512i tV = Z::Mul512(bl0V, omegaV);
                         __m512i bV = _mm512_load_si512((__m512i*)&b[j + k]);
 
@@ -212,9 +210,8 @@ public:
                         // If sub_mask is set, add p to that element
                         subV = _mm512_min_epu64(subV, _mm512_add_epi64(subV, pV512));
                         _mm512_store_si512((__m512i*)&b[j + l0 + k], subV);
-                    } // end of AVX-512 block
-
-                }
+                    }
+                } // end of AVX-512 block
             }
         }
 
@@ -226,51 +223,54 @@ public:
                 l1 *= 3;
             }
             d = N / l1;
-            for (size_t j = 0; j < N; j += l1) {
-                size_t k = 0;
 
-                for (; k + 7 < l0; k += 8) {
-                    __m512i blV = _mm512_load_si512((__m512i*)&b[j + k + l0]);
+            if constexpr (N % 8 == 0) {
+                for (size_t k = 0; k + 7 < l0; k += 8) {
                     __m512i omegaV = _mm512_set_epi64(omega[(k + 7) * d], omega[(k + 6) * d], omega[(k + 5) * d], omega[(k + 4) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
-                    __m512i y1V = Z::Mul512(blV, omegaV);
-                    __m512i bllV = _mm512_load_si512((__m512i*)&b[j + k + l0 + l0]);
                     __m512i omega2V = _mm512_set_epi64(omega[2 * (k + 7) * d], omega[2 * (k + 6) * d], omega[2 * (k + 5) * d], omega[2 * (k + 4) * d], omega[2 * (k + 3) * d], omega[2 * (k + 2) * d], omega[2 * (k + 1) * d], omega[2 * (k + 0) * d]);
-                    __m512i y2V = Z::Mul512(bllV, omega2V);
-                    __m512i yV = _mm512_add_epi64(y1V, y2V);
 
-                    __m512i yz1V = Z::Mul512(y1V, z3V);
-                    __m512i yz2V = Z::Mul512(y2V, zz3V);
-                    __m512i tV = _mm512_add_epi64(yz1V, yz2V);
-                    
-                    tV = _mm512_min_epu64(tV, _mm512_sub_epi64(tV, pV512));
-                    yV = _mm512_min_epu64(yV, _mm512_sub_epi64(yV, pV512));
+                    for (size_t j = 0; j < N; j += l1) {
+                        __m512i blV = _mm512_load_si512((__m512i*)&b[j + k + l0]);
+                        __m512i y1V = Z::Mul512(blV, omegaV);
+                        __m512i bllV = _mm512_load_si512((__m512i*)&b[j + k + l0 + l0]);
+                        __m512i y2V = Z::Mul512(bllV, omega2V);
+                        __m512i yV = _mm512_add_epi64(y1V, y2V);
 
-                    __m512i ytV = _mm512_add_epi64(yV, tV);
-                    ytV = _mm512_min_epu64(ytV, _mm512_sub_epi64(ytV, pV512));
+                        __m512i yz1V = Z::Mul512(y1V, z3V);
+                        __m512i yz2V = Z::Mul512(y2V, zz3V);
+                        __m512i tV = _mm512_add_epi64(yz1V, yz2V);
+                        
+                        tV = _mm512_min_epu64(tV, _mm512_sub_epi64(tV, pV512));
+                        yV = _mm512_min_epu64(yV, _mm512_sub_epi64(yV, pV512));
 
-                    __m512i bV = _mm512_load_si512((__m512i*)&b[j + k]);
+                        __m512i ytV = _mm512_add_epi64(yV, tV);
+                        ytV = _mm512_min_epu64(ytV, _mm512_sub_epi64(ytV, pV512));
 
-                    __m512i addV = _mm512_add_epi64(bV, tV);
-                    addV = _mm512_min_epu64(addV, _mm512_sub_epi64(addV, pV512));
-                    _mm512_store_si512((__m512i*)&b[j + k + l0], addV);
+                        __m512i bV = _mm512_load_si512((__m512i*)&b[j + k]);
 
-                    __m512i subV = _mm512_sub_epi64(bV, ytV);
-                    subV = _mm512_min_epu64(subV, _mm512_add_epi64(subV, pV512));
-                    _mm512_store_si512((__m512i*)&b[j + k + l0 + l0], subV);
+                        __m512i addV = _mm512_add_epi64(bV, tV);
+                        addV = _mm512_min_epu64(addV, _mm512_sub_epi64(addV, pV512));
+                        _mm512_store_si512((__m512i*)&b[j + k + l0], addV);
 
-                    __m512i b0V = _mm512_add_epi64(bV, yV);
-                    b0V = _mm512_min_epu64(b0V, _mm512_sub_epi64(b0V, pV512));
-                    _mm512_store_si512((__m512i*)&b[j + k], b0V);
+                        __m512i subV = _mm512_sub_epi64(bV, ytV);
+                        subV = _mm512_min_epu64(subV, _mm512_add_epi64(subV, pV512));
+                        _mm512_store_si512((__m512i*)&b[j + k + l0 + l0], subV);
+
+                        __m512i b0V = _mm512_add_epi64(bV, yV);
+                        b0V = _mm512_min_epu64(b0V, _mm512_sub_epi64(b0V, pV512));
+                        _mm512_store_si512((__m512i*)&b[j + k], b0V);
+                    }
                 } // end of AVX-512 block
-                
-                if constexpr (N % 8 != 0) {
-                    for (; k + 3 < l0; k += 4) {
+
+            } else if constexpr (N % 4 == 0) {
+                for (size_t k = 0; k + 3 < l0; k += 4) {
+                    __m512i omegaV = _mm512_set_epi64(omega[2 * (k + 3) * d], omega[2 * (k + 2) * d], omega[2 * (k + 1) * d], omega[2 * (k + 0) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
+
+                    for (size_t j = 0; j < N; j += l1) {
 
                         __m512i bl0V = _mm512_loadu_si512((__m512*)&b[j + l0 + k]);
                         __m512i bl1V = _mm512_loadu_si512((__m512*)&b[j + l0 + l0 + k - 4]);
                         __m512i blV = _mm512_shuffle_i64x2(bl0V, bl1V, 0xE4);
-
-                        __m512i omegaV = _mm512_set_epi64(omega[2 * (k + 3) * d], omega[2 * (k + 2) * d], omega[2 * (k + 1) * d], omega[2 * (k + 0) * d], omega[(k + 3) * d], omega[(k + 2) * d], omega[(k + 1) * d], omega[(k + 0) * d]);
 
                         __m512i ypreV = Z::Mul512(blV, omegaV);
                         __m256i yV = _mm256_add_epi64(_mm512_extracti64x4_epi64(ypreV, 0), _mm512_extracti64x4_epi64(ypreV, 1));
@@ -297,9 +297,12 @@ public:
                         __m256i b0V = _mm256_add_epi64(bV, yV);
                         b0V = _mm256_min_epu64(b0V, _mm256_sub_epi64(b0V, pV));
                         _mm256_storeu_si256((__m256i*)&b[j + k], b0V);
-                    } // end of AVX2 block
+                    }
+                } // end of AVX-256 block
 
-                    for (; k < l0; k++) {
+            } else {
+                for (size_t j = 0; j < N; j += l1) {
+                    for (size_t k = 0; k < l0; k++) {
                         uint64_t y1 = Z::Mul(b[j + l0 + k], omega[k * d]);
                         uint64_t y2 = Z::Mul(b[j + l0 + l0 + k], omega[2 * k * d]);
                         uint64_t y0 = Z::Add(y1, y2);
@@ -354,7 +357,21 @@ public:
 
         ForwardCT23NTT(reg, reg2);
 
-        intel::hexl::EltwiseMultMod(reg2, reg2, omega_O_table, N, p, 1);
+        if constexpr (N % 8 == 0) {
+
+            for (size_t i = 0; i < N; i += 8) {
+                __m512i reg2V = _mm512_load_si512((__m512i*)&reg2[i]);
+                __m512i omega_O_tableV = _mm512_load_si512((__m512i*)&omega_O_table[i]);
+                __m512i bV = Z::Mul512(reg2V, omega_O_tableV);
+                _mm512_store_si512((__m512i*)&reg2[i], bV);
+            }
+
+        } else {
+
+            intel::hexl::EltwiseMultMod(reg2, reg2, omega_O_table, N, p, 1);
+
+        }
+
 
         InverseCT23NTT(reg2, reg);
 

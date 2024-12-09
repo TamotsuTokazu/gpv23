@@ -39,8 +39,8 @@ VecN PartialFourierTransform(VecN a, size_t rho) {
     for (size_t i = n; i > rho; i >>= 1) {
         size_t j = i >> 1;
         size_t nn = n / i;
-        uint64_t z = Z::Pow(rN, j); // par::rN.ModExp(j, par::p);
-        uint64_t w = Z::Pow(rN, i); // par::rN.ModExp(i, par::p);
+        uint64_t z = Z::Pow(rN, j);
+        uint64_t w = Z::Pow(rN, i);
         for (size_t k = 0, kk = 0; k < nn; k++) {
             for (size_t l = 0; l < j; l++) {
                 uint64_t u = Z::Mul(a[kk * i + l + j], z);
@@ -48,7 +48,6 @@ VecN PartialFourierTransform(VecN a, size_t rho) {
                 a[kk * i + l] = Z::Add(a[kk * i + l], u);
             }
             for (size_t l = nn >> 1; l > (kk ^= l); l >>= 1);
-            // z.ModMulEq(w, par::p);
             z = Z::Mul(z, w);
         }
     }
@@ -85,7 +84,6 @@ VecN PartialInverseFourierTransform(VecN a, size_t rho, size_t r) {
                             t = Z::Add(t, Z::Mul(a[k + l + m + index[g] * i], zzz));
                             zzz = Z::Mul(zzz, zz);
                         }
-                        // zz.ModMulEq(w, par::p);
                         zz = Z::Mul(zz, w);
                     }
                     for (size_t f = 0; f < r; f++) {
