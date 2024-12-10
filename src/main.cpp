@@ -13,16 +13,16 @@ std::chrono::time_point<std::chrono::system_clock> start;
 
 constexpr size_t p = 12289;
 constexpr size_t gp = 11;
-// constexpr size_t p = 37;
-// constexpr size_t gp = 2;
+// constexpr size_t p = 97;
+// constexpr size_t gp = 5;
 
 constexpr size_t N = 256;
 constexpr size_t Ncyc = N * 2;
 
-using NTT1 = CircNTT<562827812806657LL, 7LL, p, gp>;
-using NTT2 = CircNTT<562710480187393LL, 7LL, p, gp>;
-using NTT3 = CircNTT<562693718384641LL, 11LL, p, gp>;
-using NTT4 = CircNTT<562408767737857LL, 5LL, p, gp>;
+using NTT1 = CircNTT<NTT23<562896521097217LL, 5LL, p, gp>>;
+using NTT2 = CircNTT<NTT23<562881873395713LL, 10LL, p, gp>>;
+using NTT3 = CircNTT<NTT23<562515680858113LL, 5LL, p, gp>>;
+using NTT4 = CircNTT<NTT23<561944420499457LL, 5LL, p, gp>>;
 
 using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
 

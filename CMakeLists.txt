@@ -47,6 +47,8 @@ enable_testing()
 # Add the tests subdirectory
 add_subdirectory(tests)
 
+add_subdirectory(misc)
+
 if(ENABLE_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()

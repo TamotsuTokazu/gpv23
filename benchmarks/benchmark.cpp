@@ -6,6 +6,18 @@
 
 #define REPETITIONS 3
 
+static void BM_Indep23NTT(benchmark::State& state) {
+    using NTT = NTT23<562936689020929LL, 7LL, 12289, 11>;
+    alignas(64) uint64_t a[NTT::N] = {0, 1};
+
+    for (auto _ : state) {
+        a[rand() % NTT::N] = rand();
+        NTT::GetInstance().ForwardTensor23NTT(a);
+    }
+}
+
+BENCHMARK(BM_Indep23NTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+
 static void BM_ForwardCT23NTT(benchmark::State& state) {
     using NTT = NTT<562936689020929LL, 7LL, 12289, 11>;
     alignas(64) uint64_t a[NTT::N] = {0, 1};
@@ -19,8 +31,19 @@ static void BM_ForwardCT23NTT(benchmark::State& state) {
 
 BENCHMARK(BM_ForwardCT23NTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
+static void BM_IndepForwardNTT(benchmark::State& state) {
+    using NTT = CircNTT<NTT23<562936689020929LL, 7LL, 12289, 11>>;
+    uint64_t a[NTT::N] = {0, 1};
+    for (auto _ : state) {
+        a[rand() % NTT::N] = rand();
+        NTT::GetInstance().ForwardNTT(a);
+    }
+}
+
+BENCHMARK(BM_IndepForwardNTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+
 static void BM_ForwardRaderNTT12289(benchmark::State& state) {
-    using NTT = NTT<562936689020929LL, 19, 12289, 11>;
+    using NTT = CircNTT<NTT<562936689020929LL, 19, 12289, 11>>;
     uint64_t a[NTT::N] = {0, 1};
     for (auto _ : state) {
         a[rand() % NTT::N] = rand();
@@ -33,10 +56,10 @@ BENCHMARK(BM_ForwardRaderNTT12289)->Unit(benchmark::kMicrosecond)->Repetitions(R
 static void BM_BaseExtend(benchmark::State& state) {
     constexpr size_t p = 12289;
     constexpr size_t gp = 11;
-    using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
-    using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
-    using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
-    using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
+    using NTT1 = CircNTT<NTT<562936689020929LL, 7LL, p, gp>>;
+    using NTT2 = CircNTT<NTT<562918719160321LL, 14LL, p, gp>>;
+    using NTT3 = CircNTT<NTT<562880212316161LL, 14LL, p, gp>>;
+    using NTT4 = CircNTT<NTT<562851973963777LL, 5LL, p, gp>>;
 
     using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
     for (auto _ : state) {
@@ -50,10 +73,10 @@ BENCHMARK(BM_BaseExtend)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS
 static void BM_ExtMult(benchmark::State& state) {
     constexpr size_t p = 12289;
     constexpr size_t gp = 11;
-    using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
-    using NTT2 = CircNTT<562918719160321LL, 14LL, p, gp>;
-    using NTT3 = CircNTT<562880212316161LL, 14LL, p, gp>;
-    using NTT4 = CircNTT<562851973963777LL, 5LL, p, gp>;
+    using NTT1 = CircNTT<NTT<562936689020929LL, 7LL, p, gp>>;
+    using NTT2 = CircNTT<NTT<562918719160321LL, 14LL, p, gp>>;
+    using NTT3 = CircNTT<NTT<562880212316161LL, 14LL, p, gp>>;
+    using NTT4 = CircNTT<NTT<562851973963777LL, 5LL, p, gp>>;
 
     using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
     Poly<p> a0{1, 2, 3, 4, 5, 6};

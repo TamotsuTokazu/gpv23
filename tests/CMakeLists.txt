@@ -31,6 +31,8 @@ target_link_libraries(gpv23_tests
 # Include directories if needed
 target_include_directories(gpv23_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
+target_compile_options(gpv23_tests PRIVATE -O0 -march=native -mavx2 -mavx512f -mavx512dq -Wno-unused-parameter)
+
 # Add test cases to CTest
 include(GoogleTest)
 gtest_discover_tests(gpv23_tests)
