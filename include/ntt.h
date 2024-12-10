@@ -137,7 +137,7 @@ public:
         }
     }
 
-    inline void CT23NTT(uint64_t __restrict__ a[], uint64_t __restrict__ b[], uint64_t __restrict__ omega[]) {
+    inline void CT23NTT(uint64_t a[], uint64_t b[], uint64_t omega[]) {
 
         const uint64_t z3 = omega[N / 3];
         const uint64_t zz3 = omega[2 * N / 3];
@@ -327,7 +327,6 @@ public:
 
     alignas(64) uint64_t omega_O_table[N];
     alignas(64) uint64_t omega_O_inv_table[N];
-
 
     void ComputeOmegaOTable() {
         uint64_t t = omega_O;

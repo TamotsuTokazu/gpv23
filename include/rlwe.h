@@ -24,7 +24,7 @@ template <typename DCRT>
 RLWEGadgetCiphertext<DCRT> RLWEGadgetEncrypt(const DCRT &m, const DCRT &s) {
     RLWEGadgetCiphertext<DCRT> c;
     DCRT::U::ForEach([&c, &m, &s]<size_t i> {
-        c[i] = RLWEEncrypt(m.template Component<typename DCRT::NTTi<i>>(), s);
+        c[i] = RLWEEncrypt(m.template Component<typename DCRT::template NTTi<i>>(), s);
     });
     return c;
 }
@@ -38,7 +38,7 @@ template <typename DCRT>
 RLWECiphertext<DCRT> Mult(const DCRT &a, const RLWEGadgetCiphertext<DCRT> &c) {
     RLWECiphertext<DCRT> res;
     DCRT::U::ForEach([&res, &a, &c]<size_t i> {
-        auto ai = a.template BaseExtend<typename DCRT::NTTi<i>>();
+        auto ai = a.template BaseExtend<typename DCRT::template NTTi<i>>();
         res[0] = res[0] + c[i][0] * ai;
         res[1] = res[1] + c[i][1] * ai;
     });
@@ -50,7 +50,7 @@ template <typename DCRT>
 RLWEGadgetCiphertext<DCRT> GadgetMult(const DCRT &a, const RLWEGadgetCiphertext<DCRT> &c) {
     RLWEGadgetCiphertext<DCRT> res;
     DCRT::U::ForEach([&res, &a, &c]<size_t i> {
-        res[i] = Mult(a.template Component<typename DCRT::NTTi<i>>(), c);
+        res[i] = Mult(a.template Component<typename DCRT::template NTTi<i>>(), c);
     });
     return res;
 }
@@ -59,8 +59,8 @@ template <typename DCRT>
 inline RLWECiphertext<DCRT> ExtMult(const RLWECiphertext<DCRT> &c, const RGSWCiphertext<DCRT> &C) {
     RLWECiphertext<DCRT> res;
     DCRT::U::ForEach([&res, &c, &C]<size_t i> {
-        auto ai = c[0].template BaseExtend<typename DCRT::NTTi<i>>();
-        auto bi = c[1].template BaseExtend<typename DCRT::NTTi<i>>();
+        auto ai = c[0].template BaseExtend<typename DCRT::template NTTi<i>>();
+        auto bi = c[1].template BaseExtend<typename DCRT::template NTTi<i>>();
         res[0] = res[0] - C[0][i][0] * ai + C[1][i][0] * bi;
         res[1] = res[1] - C[0][i][1] * ai + C[1][i][1] * bi;
     });
@@ -86,7 +86,7 @@ RLWECiphertext<DCRT> KeySwitch(const RLWECiphertext<DCRT> &c, const RLWEGadgetCi
     RLWECiphertext<DCRT> res;
     res[1] = c[1];
     DCRT::U::ForEach([&res, &c, &K]<size_t i> {
-        auto ci = c[0].template BaseExtend<typename DCRT::NTTi<i>>();
+        auto ci = c[0].template BaseExtend<typename DCRT::template NTTi<i>>();
         res[0] = res[0] - K[i][0] * ci;
         res[1] = res[1] - K[i][1] * ci;
     });
@@ -150,7 +150,7 @@ void DecryptAndPrint(const RLWEGadgetCiphertext<DCRT> &c, const DCRT &s) {
     DCRT::U::ForEach([&c, &s]<size_t i> {
         auto mi = c[i][1] - c[i][0] * s;
         mi = mi * DCRT::D_factors[i][i];
-        auto m = mi.template ModulusSwitch<typename DCRT::NTTi<i>>();
+        auto m = mi.template ModulusSwitch<typename DCRT::template NTTi<i>>();
         m.Print();
     });
 }
@@ -159,7 +159,7 @@ template <typename DCRT>
 size_t DecryptAndPrintE(const RLWEGadgetCiphertext<DCRT> &c, const DCRT &s) {
     auto mi = c[0][1] - c[0][0] * s;
     mi = mi * DCRT::D_factors[0][0];
-    auto m = mi.template ModulusSwitch<typename DCRT::NTTi<0>>();
+    auto m = mi.template ModulusSwitch<typename DCRT::template NTTi<0>>();
     size_t j = DCRT::N;
     for (size_t i = 0; i < DCRT::N; i++) {
         if (m.a[i] != 0) {
