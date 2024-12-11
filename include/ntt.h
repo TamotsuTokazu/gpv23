@@ -764,7 +764,7 @@ public:
 
         intel::hexl::EltwiseMultMod(reg, reg2, omega_table, N, p, 4);
 
-        // BitReverse(reg, reg2);
+        BitReverse(reg, reg2);
         InverseTensor23NTT(reg2);
 
         for (size_t i = 0; i < N; i++) {
@@ -801,7 +801,7 @@ public:
 
         intel::hexl::EltwiseMultMod(reg, reg2, omega_inv_table, N, p, 4);
 
-        // BitReverse(reg, reg2);
+        BitReverse(reg, reg2);
         InverseTensor23NTT(reg2);
 
         for (size_t i = 0; i < N; i++) {
