@@ -10,6 +10,7 @@ int main() {
     }
     T::GetInstance().ForwardNTT(a.data());
     for (size_t i = 0; i < T::N; i++) {
+        a[i] %= T::p;
         std::cout << a[i] << " ";
     }
     std::cout << std::endl;
