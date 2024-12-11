@@ -448,7 +448,7 @@ public:
     constexpr static uint64_t nu = Z::Pow(g, (p - 1) / N);
     constexpr static uint64_t nu_inv = Z::Inv(nu);
 
-    constexpr static std::array<size_t, N> bit_reverse_table = []() {
+    alignas(64) constexpr static std::array<size_t, N> bit_reverse_table = []() {
         std::array<size_t, N> bit_reverse_table;
         for (size_t i = 0, j = 0; i < U; i++) {
             bit_reverse_table[i] = j;
@@ -481,19 +481,12 @@ public:
         }
 
         const uint64_t ii = alpha_table[U / 4];
-        // uint64_t ii_barrett = Z::ComputeBarrettFactor(ii);
-        __m512i iiV = _mm512_set1_epi64(ii);
-        __m512i idx0V = _mm512_set_epi64(14, 12, 10, 8, 6, 4, 2, 0);
-        __m512i idx1V = _mm512_set_epi64(15, 13, 11, 9, 7, 5, 3, 1);
-        __m512i jdx0V = _mm512_set_epi64(11, 3, 10, 2, 9, 1, 8, 0);
-        __m512i jdx1V = _mm512_set_epi64(15, 7, 14, 6, 13, 5, 12, 4);
+        const __m512i iiV = _mm512_set1_epi64(ii);
+        const __m512i idx0V = _mm512_set_epi64(14, 12, 10, 8, 6, 4, 2, 0);
+        const __m512i idx1V = _mm512_set_epi64(15, 13, 11, 9, 7, 5, 3, 1);
+        const __m512i jdx0V = _mm512_set_epi64(11, 3, 10, 2, 9, 1, 8, 0);
+        const __m512i jdx1V = _mm512_set_epi64(15, 7, 14, 6, 13, 5, 12, 4);
         for (size_t i = 0; i < U; i += 32) {
-            // uint64_t t0 = b[i + 2];
-            // uint64_t t1 = Z::MulFastConst(b[i + 3], ii, ii_barrett);
-            // b[i + 2] = b[i] + 2 * p - t0;
-            // b[i + 3] = b[i + 1] + p - t1;
-            // b[i] = b[i] + t0;
-            // b[i + 1] = b[i + 1] + t1;
 
             __m512i a0V = _mm512_loadu_si512((__m512i*)&b[i]);      //  0  1  2  3  4  5  6  7
             __m512i a1V = _mm512_loadu_si512((__m512i*)&b[i + 8]);  //  8  9 10 11 12 13 14 15
@@ -744,7 +737,7 @@ public:
 
     inline void ForwardNTT(uint64_t a[]) {
 
-        constexpr static std::array<size_t, N> pre_perm = []() {
+        alignas(64) constexpr static std::array<size_t, N> pre_perm = []() {
             std::array<size_t, N> pre_perm;
             for (size_t i = 0; i < N; i++) {
                 pre_perm[i] = gi[t0_perm[bit_reverse_table[i]]] - 1;
@@ -752,7 +745,7 @@ public:
             return pre_perm;
         }();
 
-        constexpr static std::array<size_t, N> post_perm = []() {
+        alignas(64) constexpr static std::array<size_t, N> post_perm = []() {
             std::array<size_t, N> post_perm;
             for (size_t i = 0; i < N; i++) {
                 post_perm[i] = t0_perm_inv[(N - gi_inv[i + 1]) % N];
@@ -771,7 +764,7 @@ public:
 
         intel::hexl::EltwiseMultMod(reg, reg2, omega_table, N, p, 4);
 
-        BitReverse(reg, reg2);
+        // BitReverse(reg, reg2);
         InverseTensor23NTT(reg2);
 
         for (size_t i = 0; i < N; i++) {
@@ -781,7 +774,7 @@ public:
 
     inline void InverseNTT(uint64_t a[]) {
 
-        constexpr static std::array<size_t, N> pre_perm = []() {
+        alignas(64) constexpr static std::array<size_t, N> pre_perm = []() {
             std::array<size_t, N> pre_perm;
             for (size_t i = 0; i < N; i++) {
                 pre_perm[i] = gi[(N - t0_perm[bit_reverse_table[i]]) % N] - 1;
@@ -789,7 +782,7 @@ public:
             return pre_perm;
         }();
 
-        constexpr static std::array<size_t, N> post_perm = []() {
+        alignas(64) constexpr static std::array<size_t, N> post_perm = []() {
             std::array<size_t, N> post_perm;
             for (size_t i = 0; i < N; i++) {
                 post_perm[i] = t0_perm_inv[gi_inv[i + 1]];
@@ -808,7 +801,7 @@ public:
 
         intel::hexl::EltwiseMultMod(reg, reg2, omega_inv_table, N, p, 4);
 
-        BitReverse(reg, reg2);
+        // BitReverse(reg, reg2);
         InverseTensor23NTT(reg2);
 
         for (size_t i = 0; i < N; i++) {
