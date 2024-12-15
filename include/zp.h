@@ -5,6 +5,67 @@
 #include <immintrin.h>
 #include <limits>
 
+inline __m512i _mm512_hexl_mulhi_epi_52(__m512i x, __m512i y) {
+    __m512i zero = _mm512_set1_epi64(0);
+    return _mm512_madd52hi_epu64(zero, x, y);
+}
+
+inline __m512i _mm512_hexl_mullo_epi_52(__m512i x, __m512i y) {
+    __m512i zero = _mm512_set1_epi64(0);
+    return _mm512_madd52lo_epu64(zero, x, y);
+}
+
+inline __m512i _mm512_hexl_mullo_add_lo_epi_52(__m512i x, __m512i y, __m512i z) {
+    __m512i result = _mm512_madd52lo_epu64(x, y, z);
+    const __m512i low52b_mask = _mm512_set1_epi64((1ULL << 52) - 1);
+    result = _mm512_and_epi64(result, low52b_mask);
+    return result;
+}
+
+static inline __m512i _mm512_hexl_mulhi_epi(__m512i x, __m512i y) {
+    // https://stackoverflow.com/questions/28807341/simd-signed-with-unsigned-multiplication-for-64-bit-64-bit-to-128-bit
+    __m512i lo_mask = _mm512_set1_epi64(0x00000000ffffffff);
+    // Shuffle high bits with low bits in each 64-bit integer =>
+    // x0_lo, x0_hi, x1_lo, x1_hi, x2_lo, x2_hi, ...
+    __m512i x_hi = _mm512_shuffle_epi32(x, (_MM_PERM_ENUM)0xB1);
+    // y0_lo, y0_hi, y1_lo, y1_hi, y2_lo, y2_hi, ...
+    __m512i y_hi = _mm512_shuffle_epi32(y, (_MM_PERM_ENUM)0xB1);
+    __m512i z_lo_lo = _mm512_mul_epu32(x, y);        // x_lo * y_lo
+    __m512i z_lo_hi = _mm512_mul_epu32(x, y_hi);     // x_lo * y_hi
+    __m512i z_hi_lo = _mm512_mul_epu32(x_hi, y);     // x_hi * y_lo
+    __m512i z_hi_hi = _mm512_mul_epu32(x_hi, y_hi);  // x_hi * y_hi
+
+    //                   x_hi | x_lo
+    // x                 y_hi | y_lo
+    // ------------------------------
+    //                  [x_lo * y_lo]    // z_lo_lo
+    // +           [z_lo * y_hi]         // z_lo_hi
+    // +           [x_hi * y_lo]         // z_hi_lo
+    // +    [x_hi * y_hi]                // z_hi_hi
+    //     ^-----------^ <-- only bits needed
+    //  sum_|  hi | mid | lo  |
+
+    // Low bits of z_lo_lo are not needed
+    __m512i z_lo_lo_shift = _mm512_srli_epi64(z_lo_lo, 32);
+
+    //                   [x_lo  *  y_lo] // z_lo_lo
+    //          + [z_lo  *  y_hi]        // z_lo_hi
+    //          ------------------------
+    //            |    sum_tmp   |
+    //            |sum_mid|sum_lo|
+    __m512i sum_tmp = _mm512_add_epi64(z_lo_hi, z_lo_lo_shift);
+    __m512i sum_lo = _mm512_and_si512(sum_tmp, lo_mask);
+    __m512i sum_mid = _mm512_srli_epi64(sum_tmp, 32);
+    //            |       |sum_lo|
+    //          + [x_hi   *  y_lo]       // z_hi_lo
+    //          ------------------
+    //            [   sum_mid2   ]
+    __m512i sum_mid2 = _mm512_add_epi64(z_hi_lo, sum_lo);
+    __m512i sum_mid2_hi = _mm512_srli_epi64(sum_mid2, 32);
+    __m512i sum_hi = _mm512_add_epi64(z_hi_hi, sum_mid);
+    return _mm512_add_epi64(sum_hi, sum_mid2_hi);
+}
+
 template <uint64_t p_>
 class Zp {
 public:
@@ -73,50 +134,6 @@ public:
         return z;
     }
 
-    static inline __m512i _mm512_hexl_mulhi_epi(__m512i x, __m512i y) {
-        // https://stackoverflow.com/questions/28807341/simd-signed-with-unsigned-multiplication-for-64-bit-64-bit-to-128-bit
-        __m512i lo_mask = _mm512_set1_epi64(0x00000000ffffffff);
-        // Shuffle high bits with low bits in each 64-bit integer =>
-        // x0_lo, x0_hi, x1_lo, x1_hi, x2_lo, x2_hi, ...
-        __m512i x_hi = _mm512_shuffle_epi32(x, (_MM_PERM_ENUM)0xB1);
-        // y0_lo, y0_hi, y1_lo, y1_hi, y2_lo, y2_hi, ...
-        __m512i y_hi = _mm512_shuffle_epi32(y, (_MM_PERM_ENUM)0xB1);
-        __m512i z_lo_lo = _mm512_mul_epu32(x, y);        // x_lo * y_lo
-        __m512i z_lo_hi = _mm512_mul_epu32(x, y_hi);     // x_lo * y_hi
-        __m512i z_hi_lo = _mm512_mul_epu32(x_hi, y);     // x_hi * y_lo
-        __m512i z_hi_hi = _mm512_mul_epu32(x_hi, y_hi);  // x_hi * y_hi
-
-        //                   x_hi | x_lo
-        // x                 y_hi | y_lo
-        // ------------------------------
-        //                  [x_lo * y_lo]    // z_lo_lo
-        // +           [z_lo * y_hi]         // z_lo_hi
-        // +           [x_hi * y_lo]         // z_hi_lo
-        // +    [x_hi * y_hi]                // z_hi_hi
-        //     ^-----------^ <-- only bits needed
-        //  sum_|  hi | mid | lo  |
-
-        // Low bits of z_lo_lo are not needed
-        __m512i z_lo_lo_shift = _mm512_srli_epi64(z_lo_lo, 32);
-
-        //                   [x_lo  *  y_lo] // z_lo_lo
-        //          + [z_lo  *  y_hi]        // z_lo_hi
-        //          ------------------------
-        //            |    sum_tmp   |
-        //            |sum_mid|sum_lo|
-        __m512i sum_tmp = _mm512_add_epi64(z_lo_hi, z_lo_lo_shift);
-        __m512i sum_lo = _mm512_and_si512(sum_tmp, lo_mask);
-        __m512i sum_mid = _mm512_srli_epi64(sum_tmp, 32);
-        //            |       |sum_lo|
-        //          + [x_hi   *  y_lo]       // z_hi_lo
-        //          ------------------
-        //            [   sum_mid2   ]
-        __m512i sum_mid2 = _mm512_add_epi64(z_hi_lo, sum_lo);
-        __m512i sum_mid2_hi = _mm512_srli_epi64(sum_mid2, 32);
-        __m512i sum_hi = _mm512_add_epi64(z_hi_hi, sum_mid);
-        return _mm512_add_epi64(sum_hi, sum_mid2_hi);
-    }
-
     static inline __m512i MulConst512(__m512i x, __m512i y, __m512i y_mu) {
         __m512i xyV = _mm512_mullo_epi64(x, y);
         __m512i qV = _mm512_hexl_mulhi_epi(x, y_mu);
@@ -124,29 +141,6 @@ public:
         qV = _mm512_mullo_epi64(qV, pV);
         __m512i subV = _mm512_sub_epi64(xyV, qV);
         return _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
-    }
-
-    static inline __m512i ClearTopBits64_52(__m512i x) {
-        const __m512i low52b_mask = _mm512_set1_epi64((1ULL << 52) - 1);
-        return _mm512_and_epi64(x, low52b_mask);
-    }
-
-    static inline __m512i _mm512_hexl_mulhi_epi_52(__m512i x, __m512i y) {
-        __m512i zero = _mm512_set1_epi64(0);
-        return _mm512_madd52hi_epu64(zero, x, y);
-    }
-
-    static inline __m512i _mm512_hexl_mullo_epi_52(__m512i x, __m512i y) {
-        __m512i zero = _mm512_set1_epi64(0);
-        return _mm512_madd52lo_epu64(zero, x, y);
-    }
-
-    static inline __m512i _mm512_hexl_mullo_add_lo_epi_52(__m512i x, __m512i y, __m512i z) {
-        __m512i result = _mm512_madd52lo_epu64(x, y, z);
-
-        // Clear high 12 bits from result
-        result = ClearTopBits64_52(result);
-        return result;
     }
 
     static inline __m512i MulConst512_52(__m512i x, __m512i y, __m512i y_mu) {
