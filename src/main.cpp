@@ -14,7 +14,7 @@ std::chrono::time_point<std::chrono::system_clock> start;
 constexpr size_t p = 12289;
 constexpr size_t gp = 11;
 
-constexpr size_t N = 256;
+constexpr size_t N = 64;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<562936689020929LL, 7LL, p, gp>;
@@ -28,8 +28,8 @@ using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
 constexpr size_t rN = Z::Pow(NTT1::g, (p - 1) / Ncyc);
-constexpr size_t rho = 16;
-constexpr size_t Rx = 16;
+constexpr size_t rho = 8;
+constexpr size_t Rx = 8;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
 VecN PartialFourierTransform(VecN a, size_t rho) {
@@ -112,15 +112,12 @@ VecN PartialInverseFourierTransform(VecN a, size_t rho, size_t r) {
     return a;
 }
 
-using GaloisKey = std::array<RLWEGadgetCiphertext<DCRT>, p>;
+using GaloisKey = std::vector<RLWEGadgetCiphertext<DCRT>>;
 
 GaloisKey GaloisKeyGen(const DCRT &s) {
-    GaloisKey Kg;
+    GaloisKey Kg(p);
     for (size_t i = 2; i < p; i++) {
-        Kg[i] = KeySwitchGen(s.Galois(i), s);
-        if (i % 1000 == 0) {
-            std::cout << i << std::endl;
-        }
+        Kg[i] = KeySwitchGen(s.Galois(i), s);   
     }
     return Kg;
 }
@@ -283,8 +280,9 @@ int main() {
     END_TIMER;
 
     for (size_t i = 0; i < N; i++) {
-        DecryptAndPrintE(zPFT[i], s);
+        std::cout << DecryptAndPrintE(zPFT[i], s) << " ";
     }
+    std::cout << std::endl;
 
     return 0;
 }

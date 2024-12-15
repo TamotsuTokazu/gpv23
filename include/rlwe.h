@@ -157,13 +157,11 @@ size_t DecryptAndPrintE(const RLWEGadgetCiphertext<DCRT> &c, const DCRT &s) {
     for (size_t i = 0; i < DCRT::N; i++) {
         if (m.a[i] != 0) {
             if (j != DCRT::N) {
-                std::cout << " + ";
+                throw std::runtime_error("Invalid RLWE ciphertext");
             }
             j = i;
-            std::cout << m.a[i] << "x^" << j;
         }
     }
-    std::cout << std::endl;
     return j;
 }
 
