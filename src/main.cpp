@@ -27,7 +27,7 @@ using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
 using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
-constexpr size_t rN = Z::Pow(NTT1::g, (p - 1) / Ncyc);
+constexpr size_t rN = Z::Pow(gp, (p - 1) / Ncyc);
 constexpr size_t rho = 8;
 constexpr size_t Rx = 8;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
