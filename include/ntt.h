@@ -75,8 +75,17 @@ public:
             return alpha_table;
         }();
 
+        constexpr static std::array<uint64_t, U> alpha_barrett_table = []() {
+            std::array<uint64_t, U> alpha_barrett_table;
+            for (size_t i = 0; i < U; i++) {
+                alpha_barrett_table[i] = Z::ComputeBarrettFactor(alpha_table[i]);
+            }
+            return alpha_barrett_table;
+        }();
+
         const __m512i pV = _mm512_set1_epi64(p);
         const __m512i p2V = _mm512_set1_epi64(p * 2);
+        const __m512i negpV = _mm512_set1_epi64(-p);
 
         for (size_t i = 0; i < U; i += 2) {
             uint64_t t = b[i + 1];
@@ -84,8 +93,10 @@ public:
             b[i] = b[i] + t;
         }
 
-        const uint64_t ii = alpha_table[U / 4];
+        constexpr uint64_t ii = alpha_table[U / 4];
         const __m512i iiV = _mm512_set1_epi64(ii);
+        constexpr uint64_t iib = alpha_barrett_table[U / 4];
+        const __m512i iibV = _mm512_set1_epi64(iib);
         const __m512i idx0V = _mm512_set_epi64(14, 12, 10, 8, 6, 4, 2, 0);
         const __m512i idx1V = _mm512_set_epi64(15, 13, 11, 9, 7, 5, 3, 1);
         const __m512i jdx0V = _mm512_set_epi64(11, 3, 10, 2, 9, 1, 8, 0);
@@ -107,12 +118,16 @@ public:
             __m512i b2V = _mm512_permutex2var_epi64(x0V, idx1V, x2V); //  2  6 10 14 18 22 26 30
             __m512i b3V = _mm512_permutex2var_epi64(x1V, idx1V, x3V); //  3  7 11 15 19 23 27 31
 
-            b3V = Z::Mul512(b3V, iiV);
+            // b3V = Z::Mul512(b3V, iiV);
+            __m512i xyV = _mm512_hexl_mullo_epi_52(b3V, iiV);
+            __m512i qV = _mm512_hexl_mulhi_epi_52(b3V, iibV);
+
+            b3V = _mm512_hexl_mullo_add_lo_epi_52(xyV, qV, negpV);
 
             __m512i y0V = _mm512_add_epi64(b0V, b2V);
             __m512i y1V = _mm512_add_epi64(b1V, b3V);
             __m512i y2V = _mm512_add_epi64(b0V, _mm512_sub_epi64(p2V, b2V));
-            __m512i y3V = _mm512_add_epi64(b1V, _mm512_sub_epi64(pV, b3V));
+            __m512i y3V = _mm512_add_epi64(b1V, _mm512_sub_epi64(p2V, b3V));
 
             __m512i z0V = _mm512_permutex2var_epi64(y0V, jdx0V, y2V); //  0  2  4  6  8 10 12 14
             __m512i z1V = _mm512_permutex2var_epi64(y0V, jdx1V, y2V); // 16 18 20 22 24 26 28 30
@@ -132,15 +147,21 @@ public:
         }
 
         __m512i jV = _mm512_set_epi64(alpha_table[(U / 8) * 3], alpha_table[(U / 8) * 2], alpha_table[(U / 8) * 1], alpha_table[(U / 8) * 0], alpha_table[(U / 8) * 3], alpha_table[(U / 8) * 2], alpha_table[(U / 8) * 1], alpha_table[(U / 8) * 0]);
+        __m512i jbV = _mm512_set_epi64(alpha_barrett_table[(U / 8) * 3], alpha_barrett_table[(U / 8) * 2], alpha_barrett_table[(U / 8) * 1], alpha_barrett_table[(U / 8) * 0], alpha_barrett_table[(U / 8) * 3], alpha_barrett_table[(U / 8) * 2], alpha_barrett_table[(U / 8) * 1], alpha_barrett_table[(U / 8) * 0]);
         for (size_t i = 0; i < U; i += 16) {
             __m512i bV = _mm512_loadu_si512((__m512i*)&b[i]);
             __m512i bbV = _mm512_loadu_si512((__m512i*)&b[i + 8]);
             __m512i b0V = _mm512_shuffle_i64x2(bV, bbV, 0x44);
             __m512i b1V = _mm512_shuffle_i64x2(bV, bbV, 0xEE);
             b0V = _mm512_min_epu64(b0V, _mm512_sub_epi64(b0V, p2V));
-            __m512i tV = Z::Mul512(b1V, jV);
-            __m512i y0V = _mm512_add_epi64(b0V, tV);
-            __m512i y1V = _mm512_add_epi64(b0V, _mm512_sub_epi64(pV, tV));
+            // b1V = Z::Mul512(b1V, jV);
+            
+            __m512i xyV = _mm512_hexl_mullo_epi_52(b1V, jV);
+            __m512i qV = _mm512_hexl_mulhi_epi_52(b1V, jbV);
+            b1V = _mm512_hexl_mullo_add_lo_epi_52(xyV, qV, negpV);
+
+            __m512i y0V = _mm512_add_epi64(b0V, b1V);
+            __m512i y1V = _mm512_add_epi64(b0V, _mm512_sub_epi64(p2V, b1V));
             __m512i r0V = _mm512_shuffle_i64x2(y0V, y1V, 0x44);
             __m512i r1V = _mm512_shuffle_i64x2(y0V, y1V, 0xEE);
             _mm512_storeu_si512((__m512i*)&b[i], r0V);

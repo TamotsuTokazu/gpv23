@@ -144,12 +144,13 @@ public:
     }
 
     static inline __m512i MulConst512_52(__m512i x, __m512i y, __m512i y_mu) {
+        const static __m512i negpV = _mm512_set1_epi64(-p);
+        const static __m512i pV = _mm512_set1_epi64(p);
         __m512i xyV = _mm512_hexl_mullo_epi_52(x, y);
         __m512i qV = _mm512_hexl_mulhi_epi_52(x, y_mu);
-        const __m512i pV = _mm512_set1_epi64(p);
-        qV = _mm512_hexl_mullo_epi_52(qV, pV);
-        __m512i subV = _mm512_sub_epi64(xyV, qV);
-        return _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
+        __m512i subV = _mm512_hexl_mullo_add_lo_epi_52(xyV, qV, negpV);
+        subV = _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
+        return subV;
     }
 
 };

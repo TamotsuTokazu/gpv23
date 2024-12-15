@@ -39,7 +39,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE hexl)
 
 # Add compiler definitions or options if needed
 # target_compile_definitions(${PROJECT_NAME} PRIVATE SOME_DEFINITION)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror -Ofast -march=native -mavx2 -mavx512f -mavx512dq -funroll-loops -ftree-vectorize -Wno-unused-parameter)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror -Ofast -march=native -mavx2 -mavx512f -mavx512dq -mavx512ifma -funroll-loops -ftree-vectorize -Wno-unused-parameter)
 
 # Enable testing
 enable_testing()
