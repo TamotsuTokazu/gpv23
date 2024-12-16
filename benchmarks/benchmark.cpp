@@ -6,6 +6,30 @@
 
 #define REPETITIONS 3
 
+static void BM_Indep23NTT96(benchmark::State& state) {
+    using NTT = NTT23<562896521097217LL, 5LL, 97, 5>;
+    alignas(64) uint64_t a[NTT::N] = {0, 1};
+    NTT::GetInstance().ForwardTensor23NTT(a);
+    for (auto _ : state) {
+        a[rand() % NTT::N] = rand();
+        NTT::GetInstance().ForwardTensor23NTT(a);
+    }
+}
+
+BENCHMARK(BM_Indep23NTT96)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+
+static void BM_Indep23NTT768(benchmark::State& state) {
+    using NTT = NTT23<560765507039233LL, 7LL, 769, 11>;
+    alignas(64) uint64_t a[NTT::N] = {0, 1};
+    NTT::GetInstance().ForwardTensor23NTT(a);
+    for (auto _ : state) {
+        a[rand() % NTT::N] = rand();
+        NTT::GetInstance().ForwardTensor23NTT(a);
+    }
+}
+
+BENCHMARK(BM_Indep23NTT768)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+
 static void BM_Indep23NTT(benchmark::State& state) {
     using NTT = NTT23<562936689020929LL, 7LL, 12289, 11>;
     alignas(64) uint64_t a[NTT::N] = {0, 1};
