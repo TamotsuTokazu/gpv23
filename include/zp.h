@@ -5,6 +5,8 @@
 #include <immintrin.h>
 #include <limits>
 
+#if defined(HAS_AVX512IFMA)
+
 inline __m512i _mm512_hexl_mulhi_epi_52(__m512i x, __m512i y) {
     __m512i zero = _mm512_set1_epi64(0);
     return _mm512_madd52hi_epu64(zero, x, y);
@@ -21,6 +23,10 @@ inline __m512i _mm512_hexl_mullo_add_lo_epi_52(__m512i x, __m512i y, __m512i z) 
     result = _mm512_and_epi64(result, low52b_mask);
     return result;
 }
+
+#endif // HAS_AVX512IFMA
+
+#if defined(HAS_AVX512DQ)
 
 static inline __m512i _mm512_hexl_mulhi_epi(__m512i x, __m512i y) {
     // https://stackoverflow.com/questions/28807341/simd-signed-with-unsigned-multiplication-for-64-bit-64-bit-to-128-bit
@@ -65,6 +71,8 @@ static inline __m512i _mm512_hexl_mulhi_epi(__m512i x, __m512i y) {
     __m512i sum_hi = _mm512_add_epi64(z_hi_hi, sum_mid);
     return _mm512_add_epi64(sum_hi, sum_mid2_hi);
 }
+
+#endif // HAS_AVX512DQ
 
 template <uint64_t p_>
 class Zp {
@@ -114,6 +122,8 @@ public:
         return Pow(x, p - 2);
     }
 
+#if defined(HAS_AVX512DQ)
+
     constexpr static double u = (1.0 + std::numeric_limits<double>::epsilon()) / (double)p;
 
     static inline __m512i Mul512(__m512i x, __m512i y) requires (p < (1ULL << 50)) {
@@ -143,6 +153,10 @@ public:
         return _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
     }
 
+#endif // HAS_AVX512DQ
+
+#if defined(HAS_AVX512IFMA)
+
     static inline __m512i MulConst512_52(__m512i x, __m512i y, __m512i y_mu) {
         const static __m512i negpV = _mm512_set1_epi64(-p);
         const static __m512i pV = _mm512_set1_epi64(p);
@@ -152,6 +166,8 @@ public:
         subV = _mm512_min_epu64(subV, _mm512_sub_epi64(subV, pV));
         return subV;
     }
+
+#endif // HAS_AVX512IFMA
 
 };
 
