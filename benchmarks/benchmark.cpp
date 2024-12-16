@@ -17,11 +17,23 @@ static void BM_ForwardCT23NTT(benchmark::State& state) {
 
 BENCHMARK(BM_ForwardCT23NTT)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true)->Unit(benchmark::kMicrosecond);
 
-static void BM_ForwardRaderNTT769(benchmark::State& state) {
-    using NTT = NTT<1152921504602791681LL, 11, 769, 11>;
-    uint64_t a[768] = {0, 1};
+static void BM_ForwardRaderNTT97(benchmark::State& state) {
+    using NTT = NTT<562896521097217LL, 5LL, 97, 5>;
+    uint64_t a[NTT::N] = {0, 1};
     for (auto _ : state) {
         NTT::GetInstance().ForwardNTT(a);
+        a[rand() % NTT::N] = rand() % NTT::N;
+    }
+}
+
+BENCHMARK(BM_ForwardRaderNTT97)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true)->Unit(benchmark::kMicrosecond);
+
+static void BM_ForwardRaderNTT769(benchmark::State& state) {
+    using NTT = NTT<1152921504602791681LL, 11, 769, 11>;
+    uint64_t a[NTT::N] = {0, 1};
+    for (auto _ : state) {
+        NTT::GetInstance().ForwardNTT(a);
+        a[rand() % NTT::N] = rand() % NTT::N;
     }
 }
 
@@ -29,9 +41,10 @@ BENCHMARK(BM_ForwardRaderNTT769)->Repetitions(REPETITIONS)->ReportAggregatesOnly
 
 static void BM_ForwardRaderNTT12289(benchmark::State& state) {
     using NTT = NTT<1152921504107839489LL, 19, 12289, 11>;
-    uint64_t a[12288] = {0, 1};
+    uint64_t a[NTT::N] = {0, 1};
     for (auto _ : state) {
         NTT::GetInstance().ForwardNTT(a);
+        a[rand() % NTT::N] = rand() % NTT::N;
     }
 }
 
