@@ -18,6 +18,18 @@ static void BM_Indep23NTT(benchmark::State& state) {
 
 BENCHMARK(BM_Indep23NTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
 
+static void BM_Indep23InvNTT(benchmark::State& state) {
+    using NTT = NTT23<562936689020929LL, 7LL, 12289, 11>;
+    alignas(64) uint64_t a[NTT::N] = {0, 1};
+    NTT::GetInstance().InverseTensor23NTT(a);
+    for (auto _ : state) {
+        a[rand() % NTT::N] = rand();
+        NTT::GetInstance().InverseTensor23NTT(a);
+    }
+}
+
+BENCHMARK(BM_Indep23InvNTT)->Unit(benchmark::kMicrosecond)->Repetitions(REPETITIONS)->ReportAggregatesOnly(true);
+
 static void BM_IndepForwardCircNTT(benchmark::State& state) {
     using NTT = CircNTT<NTT23<562936689020929LL, 7LL, 12289, 11>>;
     uint64_t a[NTT::N] = {0, 1};

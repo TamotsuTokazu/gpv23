@@ -16,7 +16,7 @@ constexpr size_t gp = 11;
 // constexpr size_t p = 97;
 // constexpr size_t gp = 5;
 
-constexpr size_t N = 256;
+constexpr size_t N = 1024;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<NTT23<562896521097217LL, 5LL, p, gp>>;
@@ -30,8 +30,8 @@ using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
 
 constexpr size_t rN = Z::Pow(gp, (p - 1) / Ncyc);
-constexpr size_t rho = 16;
-constexpr size_t Rx = 16;
+constexpr size_t rho = 32;
+constexpr size_t Rx = 32;
 constexpr uint64_t zeta = Z::Pow(rN, rho);
 
 VecN PartialFourierTransform(VecN a, size_t rho) {
