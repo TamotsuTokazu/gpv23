@@ -11,20 +11,22 @@
 
 std::chrono::time_point<std::chrono::system_clock> start;
 
-    constexpr size_t p = 12289;
-    constexpr size_t gp = 11;
-// constexpr size_t p = 97;
-// constexpr size_t gp = 5;
+// constexpr size_t p = 12289;
+// constexpr size_t gp = 11;
+constexpr size_t p = 97;
+constexpr size_t gp = 5;
 
-constexpr size_t N = 64;
+constexpr size_t N = 16;
 constexpr size_t Ncyc = N * 2;
 
 using NTT1 = CircNTT<NTT23<562896521097217LL, 5LL, p, gp>>;
 using NTT2 = CircNTT<NTT23<562881873395713LL, 10LL, p, gp>>;
 using NTT3 = CircNTT<NTT23<562515680858113LL, 5LL, p, gp>>;
 using NTT4 = CircNTT<NTT23<561944420499457LL, 5LL, p, gp>>;
+// using NTT5 = CircNTT<NTT23<561504989454337LL, 5LL, p, gp>>;
 
 using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4>;
+// using DCRT = DCRTPoly<NTT1, NTT2, NTT3, NTT4, NTT5>;
 
 using VecN = std::array<uint64_t, N>;
 using Z = Zp<p>;
@@ -118,10 +120,10 @@ GaloisKey GaloisKeyGen(const DCRT &s) {
     return Kg;
 }
 
-RLWEGadgetCiphertext<DCRT> EvalInnerProduct(const GaloisKey &Kg, std::vector<RGSWCiphertext<DCRT>>::iterator z, const std::vector<uint64_t> &a, size_t l, size_t stride) {
-    RLWEGadgetCiphertext<DCRT> ct = z[0][1];
-    uint64_t t = a[0];
-    for (size_t i = 1; i < l; i++) {
+template <typename Ct>
+Ct EvalInnerProduct(const GaloisKey &Kg, Ct ct, std::vector<RGSWCiphertext<DCRT>>::iterator z, uint64_t a0, std::vector<uint64_t>::iterator a, size_t l, size_t stride) {
+    uint64_t t = a0;
+    for (size_t i = 0; i < l; i++) {
         if (a[i] != 0) {
             t = Z::Mul(t, Z::Inv(a[i]));
             if (t != 1) {
@@ -139,7 +141,12 @@ RLWEGadgetCiphertext<DCRT> EvalInnerProduct(const GaloisKey &Kg, std::vector<RGS
     return ct;
 }
 
-std::vector<RLWEGadgetCiphertext<DCRT>> HomomorphicPFT(const GaloisKey &Kg, const RLWEGadgetCiphertext<DCRT> Kss, std::vector<RLWEGadgetCiphertext<DCRT>> z, DCRT s) {
+RLWEGadgetCiphertext<DCRT> EvalInnerProduct(const GaloisKey &Kg, std::vector<RGSWCiphertext<DCRT>>::iterator z, std::vector<uint64_t>::iterator a, size_t l, size_t stride) {
+    RLWEGadgetCiphertext ct = z[0][1];
+    return EvalInnerProduct(Kg, ct, z + stride, a[0], a + 1, l - 1, stride);
+}
+
+std::vector<RLWECiphertext<DCRT>> HomomorphicPFT(const GaloisKey &Kg, const RLWEGadgetCiphertext<DCRT> Kss, std::vector<RLWEGadgetCiphertext<DCRT>> z, std::vector<RLWECiphertext<DCRT>> test, DCRT s) {
     std::vector<RGSWCiphertext<DCRT>> regs(N);
     std::vector<size_t> index;
 
@@ -158,40 +165,61 @@ std::vector<RLWEGadgetCiphertext<DCRT>> HomomorphicPFT(const GaloisKey &Kg, cons
         for (size_t k = 0; k < N; k++) {
             regs[k] = SchemeSwitch(z[k], Kss);
         }
-        for (size_t k = 0; k < N; k += j) {
-            uint64_t Z = 1;
-            for (size_t l = 0; l < i; l += rho) {
-                for (size_t m = 0; m < rho; m++) {
-                    uint64_t zz = Z;
-                    for (size_t f = 0; f < r; f++) {
-                        uint64_t zzz = 1;
-                        std::vector<uint64_t> a(r);
-                        for (size_t g = 0; g < r; g++) {
-                            a[index[g]] = zzz;
-                            zzz = Z::Mul(zzz, zz);
-                        }
-                        z[k + l + m + f * i] = EvalInnerProduct(Kg, regs.begin() + k + l + m, a, r, i);
-                        zz = Z::Mul(zz, w);
+        if (j == N) {
+            std::vector<uint64_t> adjust(N);
+            {
+                uint64_t w = Z::Pow(rN, Ncyc - rho);
+                uint64_t Z = 1;
+                for (size_t i = 0; i < N; i += rho) {
+                    for (size_t j = 0; j < rho; j++) {
+                        adjust[i + j] = Z;
                     }
+                    Z = Z::Mul(Z, w);
                 }
-                Z = Z::Mul(Z, W);
+            }
+            for (size_t k = 0; k < N; k += j) {
+                uint64_t Z = 1;
+                for (size_t l = 0; l < i; l += rho) {
+                    for (size_t m = 0; m < rho; m++) {
+                        uint64_t zz = Z;
+                        for (size_t f = 0; f < r; f++) {
+                            uint64_t zzz = 1;
+                            std::vector<uint64_t> a(r);
+                            for (size_t g = 0; g < r; g++) {
+                                a[index[g]] = zzz * adjust[k + l + m + f * i] % p;
+                                zzz = Z::Mul(zzz, zz);
+                            }
+                            test[k + l + m + f * i] = EvalInnerProduct(Kg, test[k + l + m + f * i], regs.begin() + k + l + m, 1, a.begin(), r, i);
+                            zz = Z::Mul(zz, w);
+                        }
+                    }
+                    Z = Z::Mul(Z, W);
+                }
+            }
+        } else {
+            for (size_t k = 0; k < N; k += j) {
+                uint64_t Z = 1;
+                for (size_t l = 0; l < i; l += rho) {
+                    for (size_t m = 0; m < rho; m++) {
+                        uint64_t zz = Z;
+                        for (size_t f = 0; f < r; f++) {
+                            uint64_t zzz = 1;
+                            std::vector<uint64_t> a(r);
+                            for (size_t g = 0; g < r; g++) {
+                                a[index[g]] = zzz;
+                                zzz = Z::Mul(zzz, zz);
+                            }
+                            z[k + l + m + f * i] = EvalInnerProduct(Kg, regs.begin() + k + l + m, a.begin(), r, i);
+                            zz = Z::Mul(zz, w);
+                        }
+                    }
+                    Z = Z::Mul(Z, W);
+                }
             }
         }
     }
 
-    uint64_t w = Z::Pow(rN, Ncyc - rho);
-    uint64_t Z = 1;
-    for (size_t i = 0; i < N; i += rho) {
-        for (size_t j = 0; j < rho; j++) {
-            if (Z != 1) {
-                z[i + j] = Galois(z[i + j], Z);
-                z[i + j] = KeySwitch(z[i + j], Kg[Z]);
-            }
-        }
-        Z = Z::Mul(Z, w);
-    }
-
-    return z;
+    return test;
 }
 
 int main() {
@@ -263,7 +291,7 @@ int main() {
             for (size_t j = i + 1; j < rho; j++) {
                 a[rho - j + i] = Z::Mul(aP[kk * rho + j], zzeta);
             }
-            regs[kk * rho + i] = EvalInnerProduct(Kg, zz.begin() + kk * rho, a, rho, 1);
+            regs[kk * rho + i] = EvalInnerProduct(Kg, zz.begin() + kk * rho, a.begin(), rho, 1);
         }
         zzeta = Z::Mul(zzeta, zeta);
         zzeta = Z::Mul(zzeta, zeta);
@@ -274,7 +302,18 @@ int main() {
 
     START_TIMER;
 
-    std::vector<RLWEGadgetCiphertext<DCRT>> zPFT = HomomorphicPFT(Kg, Kss, regs, s);
+    Poly<p> bt_poly = {0, 1};
+    DCRT at, bt{bt_poly};
+    for (size_t j = 0; j < DCRT::N; j++) {
+        bt.a[0][j] = NTT1::Z::Mul(bt.a[0][j], NTT1::Z::Mul(NTT1::p / 4, DCRT::D_factors[0][0]));
+        for (size_t i = 1; i < DCRT::ell; i++) {
+            bt.a[i][j] = 0;
+        }
+    }
+
+    std::vector<RLWECiphertext<DCRT>> test(N, {at, bt});
+
+    std::vector<RLWECiphertext<DCRT>> zPFT = HomomorphicPFT(Kg, Kss, regs, test, s);
 
     END_TIMER;
 

@@ -31,3 +31,8 @@ N -= m
 N, g = gen_prime(N, m)
 print(factor(N - 1))
 print(f'{N}LL, {g}LL, {p}, {primitive_root(p)}')
+
+N -= m
+N, g = gen_prime(N, m)
+print(factor(N - 1))
+print(f'{N}LL, {g}LL, {p}, {primitive_root(p)}')

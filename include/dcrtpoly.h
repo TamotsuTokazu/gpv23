@@ -321,7 +321,11 @@ public:
     }
 
     static DCRTPoly SampleE() {
-        return DCRTPoly();
+        Poly<N> poly;
+        for (size_t i = 0; i < 100; i++) {
+            poly.a[rand() % N] = rand() % 3 - 1;
+        }
+        return DCRTPoly(poly);
     }
 
     constexpr DCRTPoly Galois(size_t alpha) const requires (N == O) {
